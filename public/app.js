@@ -19,8 +19,35 @@ function stateClass(value) {
 
 function fallbackSummary(company) {
   if (clean(company.evidence_summary)) return company.evidence_summary;
-  if (clean(company.notes)) return company.notes;
-  return 'Open the profile to review the current assessment.';
+  return 'Description under editorial review.';
+}
+
+function commercialStage(value) {
+  const status = clean(value);
+  const normalized = status.toLocaleLowerCase();
+  if (!normalized) return 'Not specified';
+  if (
+    normalized.startsWith('yes')
+    || normalized.startsWith('commercial')
+    || normalized.startsWith('commercialised')
+  ) return 'Commercial';
+  if (normalized.startsWith('early') || normalized.startsWith('partial')) return 'Early commercial';
+  if (
+    normalized.includes('pilot')
+    || normalized.includes('field trial')
+    || normalized.includes('initial sale')
+  ) return 'Pilot';
+  if (
+    normalized.includes('pre-commercial')
+    || normalized.includes('preclinical')
+    || normalized.includes('prototype')
+    || normalized.includes('proof of concept')
+    || normalized.includes('r&d')
+    || normalized.includes('developing')
+    || normalized.includes('research use')
+    || normalized.startsWith('no /')
+  ) return 'Pre-commercial';
+  return status;
 }
 
 function safeWebsite(value) {
@@ -101,9 +128,7 @@ function companyCard(company) {
     createElement('p', 'card-summary', fallbackSummary(company)),
   );
 
-  const commercial = clean(company.commercialised)
-    ? `Commercial status · ${company.commercialised}`
-    : 'Commercial status · Not specified';
+  const commercial = `Commercial stage · ${commercialStage(company.commercialised)}`;
   const cardFooter = createElement('div', 'card-footer');
   const investors = Array.isArray(company.investors) ? company.investors : [];
   if (investors.length) {
@@ -585,3 +610,4 @@ dialogClose.addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
 
 route();
+

@@ -12,6 +12,13 @@ Public, evidence-led directory backed directly by Neon Postgres.
 - The browser never receives database credentials and has no write path.
 - Railway runs the server from the repository root.
 
+## Public company content contract
+
+- `evidence_summary` is the only source for public company descriptions; internal assessment `notes` are never used as fallback copy.
+- Every published company should have a description, category, country, commercial status, review date and methodology version.
+- Descriptions are public-facing prose rather than methodology shorthand such as criterion numbers or pass counts.
+- Company cards group detailed commercial-status wording into a consistent stage. The full stored status remains visible in the company profile.
+
 Neon remains the sole source of truth. There is no checked-in company or investor dataset and no application-side business-data cache.
 
 ## Local development
@@ -33,3 +40,4 @@ Railway supplies `PORT` automatically.
 ## Data safety
 
 The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.
+
