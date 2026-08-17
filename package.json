@@ -7,7 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/hcvc_probe.mjs && node server.js",
     "check": "node --check directory-api.js && node --check server.js && node --check worker.js && node --check public/app.js",
     "dev:cloudflare": "wrangler dev",
     "deploy:cloudflare": "wrangler deploy",
@@ -20,4 +20,3 @@
     "wrangler": "^4.0.0"
   }
 }
-
