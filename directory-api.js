@@ -89,9 +89,14 @@ function decorateCompanies(companies) {
   });
 }
 
-async function getCompanies(databaseUrl) {
+function entityType(entity) {
+  const type = String(entity?.entity_type || 'company').trim().toLowerCase();
+  return ['asset', 'drug'].includes(type) ? type : 'company';
+}
+
+async function getPublicEntities(databaseUrl) {
   const sql = database(databaseUrl);
-  const companies = await sql`
+  const entities = await sql`
     SELECT
       pc.id,
       pc.name,
@@ -107,6 +112,7 @@ async function getCompanies(databaseUrl) {
       pc.publishable,
       pc.evidence_summary,
       pc.updated_at,
+      pc.entity_type,
       COALESCE(
         (
           SELECT jsonb_agg(
@@ -162,7 +168,20 @@ async function getCompanies(databaseUrl) {
       CASE pc.public_state WHEN 'Main' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END,
       pc.name ASC
   `;
-  return decorateCompanies(companies);
+  return decorateCompanies(entities).map((entity) => ({
+    ...entity,
+    entity_type: entityType(entity),
+  }));
+}
+
+async function getCompanies(databaseUrl) {
+  const entities = await getPublicEntities(databaseUrl);
+  return entities.filter((entity) => entity.entity_type === 'company');
+}
+
+async function getAssets(databaseUrl) {
+  const entities = await getPublicEntities(databaseUrl);
+  return entities.filter((entity) => ['asset', 'drug'].includes(entity.entity_type));
 }
 
 async function getScreeningStats(databaseUrl) {
@@ -177,6 +196,7 @@ async function getScreeningStats(databaseUrl) {
         GROUP BY cr.company_id
         HAVING COUNT(DISTINCT cr.criterion) = 8
       ) AS completed ON completed.company_id = c.id
+      WHERE COALESCE(c.entity_type, 'company') = 'company'
     )
     SELECT
       COUNT(*)::integer AS screened_count,
@@ -316,6 +336,18 @@ async function companiesResponse(request, databaseUrl) {
   });
 }
 
+async function assetsResponse(request, databaseUrl) {
+  const assets = await getAssets(databaseUrl);
+  return jsonResponse(request, 200, {
+    assets,
+    asset_count: assets.length,
+    main_count: assets.filter((asset) => asset.public_state === 'Main').length,
+    pending_count: assets.filter((asset) => asset.public_state === 'Pending').length,
+    source: 'Neon public.public_companies grouped by explicit entity type',
+    generatedAt: new Date().toISOString(),
+  });
+}
+
 async function countriesResponse(request, databaseUrl, pathname) {
   const companies = await getCompanies(databaseUrl);
   const countries = buildCountries(companies);
@@ -389,6 +421,7 @@ export async function handleApiRequest(request, databaseUrl) {
 
   try {
     if (pathname === '/api/companies') return await companiesResponse(request, databaseUrl);
+    if (pathname === '/api/assets') return await assetsResponse(request, databaseUrl);
     if (pathname === '/api/countries' || pathname.startsWith('/api/countries/')) {
       return await countriesResponse(request, databaseUrl, pathname);
     }

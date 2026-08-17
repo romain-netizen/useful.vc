@@ -6,7 +6,8 @@ Public, evidence-led directory backed directly by Neon Postgres.
 
 - Cloudflare Workers is the production runtime. Cloudflare Static Assets serves the browser application, while `worker.js` serves the Neon-backed JSON API.
 - `directory-api.js` contains the shared, runtime-neutral API so the temporary Railway rollback service and Cloudflare return the same data.
-- `GET /api/companies` reads publishable rows from `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
+- `GET /api/companies` reads publishable company rows from `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
+- `GET /api/assets` exposes clinical assets and drug rows separately—including pathology-specific diagnostics and invasive interventions—without mixing them into company pages or company screening statistics.
 - The company API also reports the full screening funnel from Neon: companies with all eight criteria reviewed, plus Main and Pending counts and percentages against that denominator.
 - `GET /api/investors` and `GET /api/investors/:slug` expose the searchable investor index; the legacy `/api/vcs` routes remain compatible.
 - `/countries` and `/investors` provide public indexes and detail pages without duplicating business data in the application.
@@ -53,4 +54,3 @@ Railway supplies `PORT` automatically.
 ## Data safety
 
 The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.
-

@@ -43,6 +43,7 @@ async function sendResponse(req, res, response) {
 
 function isApplicationRoute(pathname) {
   return pathname === '/'
+    || pathname === '/assets'
     || pathname === '/countries'
     || /^\/countries\/[^/]+\/?$/.test(pathname)
     || pathname === '/investors'
@@ -115,4 +116,3 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
-

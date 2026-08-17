@@ -4,6 +4,7 @@ const dialogContent = document.querySelector('#dialog-content');
 const dialogClose = document.querySelector('#dialog-close');
 let routeVersion = 0;
 let directoryCache = null;
+let assetsCache = null;
 
 function clean(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -20,6 +21,18 @@ function stateClass(value) {
 function fallbackSummary(company) {
   if (clean(company.evidence_summary)) return company.evidence_summary;
   return 'Description under editorial review.';
+}
+
+function entityType(entity) {
+  const type = clean(entity?.entity_type).toLocaleLowerCase();
+  return ['asset', 'drug'].includes(type) ? type : 'company';
+}
+
+function entityLabel(entity) {
+  const type = entityType(entity);
+  if (type === 'drug') return 'Drug developer';
+  if (type === 'asset') return 'Clinical asset';
+  return 'Company';
 }
 
 function commercialStage(value) {
@@ -102,6 +115,21 @@ async function getDirectory() {
   return directoryCache;
 }
 
+async function getAssetsDirectory() {
+  if (!assetsCache) {
+    assetsCache = fetchJson('/api/assets').then((payload) => ({
+      assets: Array.isArray(payload.assets) ? payload.assets : [],
+      assetCount: Number(payload.asset_count || 0),
+      mainCount: Number(payload.main_count || 0),
+      pendingCount: Number(payload.pending_count || 0),
+    })).catch((error) => {
+      assetsCache = null;
+      throw error;
+    });
+  }
+  return assetsCache;
+}
+
 function detailRow(label, value) {
   const text = clean(value);
   if (!text || text === '—') return null;
@@ -113,9 +141,10 @@ function detailRow(label, value) {
 function companyCard(company) {
   const article = createElement('article', 'company-card');
   article.dataset.state = stateClass(company.public_state);
+  article.dataset.entityType = entityType(company);
   const button = createElement('button', 'card-button');
   button.type = 'button';
-  button.setAttribute('aria-label', `View ${clean(company.name) || 'company'}`);
+  button.setAttribute('aria-label', `View ${clean(company.name) || entityLabel(company).toLocaleLowerCase()}`);
 
   const topLine = createElement('div', 'card-topline');
   const pill = createElement('span', `state-pill ${stateClass(company.public_state)}`, clean(company.public_state) || 'Listed');
@@ -123,8 +152,11 @@ function companyCard(company) {
   topLine.lastElementChild.setAttribute('aria-hidden', 'true');
 
   const body = document.createElement('div');
+  const metadata = entityType(company) === 'company'
+    ? [clean(company.category), clean(company.country)]
+    : [entityLabel(company), clean(company.category), clean(company.country)];
   body.append(
-    createElement('p', 'card-meta', [clean(company.category), clean(company.country)].filter(Boolean).join(' · ') || 'Company'),
+    createElement('p', 'card-meta', metadata.filter(Boolean).join(' · ') || entityLabel(company)),
     createElement('h3', '', clean(company.name) || 'Unnamed company'),
     createElement('p', 'card-summary', fallbackSummary(company)),
   );
@@ -152,12 +184,13 @@ function renderCompanyGrid(grid, companies) {
 function openCompany(company) {
   const container = document.createElement('div');
   const pill = createElement('span', `state-pill ${stateClass(company.public_state)}`, clean(company.public_state) || 'Listed');
-  const title = createElement('h2', '', clean(company.name) || 'Company');
+  const title = createElement('h2', '', clean(company.name) || entityLabel(company));
   title.id = 'dialog-title';
   const meta = createElement(
     'p',
     'dialog-meta',
-    [clean(company.category), clean(company.country)].filter(Boolean).join(' · ') || 'Company profile',
+    [entityType(company) === 'company' ? '' : entityLabel(company), clean(company.category), clean(company.country)]
+      .filter(Boolean).join(' · ') || `${entityLabel(company)} profile`,
   );
   const summary = createElement('p', 'dialog-summary', fallbackSummary(company));
   const details = createElement('dl', 'detail-list');
@@ -216,6 +249,65 @@ function addOptions(select, values) {
     option.textContent = value;
     select.append(option);
   }
+}
+
+function setupDirectoryFilters(entities, labels = {}) {
+  const singular = labels.singular || 'company';
+  const pluralForm = labels.plural || 'companies';
+  const elements = {
+    grid: document.querySelector('#company-grid'),
+    search: document.querySelector('#search'),
+    stateFilter: document.querySelector('#state-filter'),
+    categoryFilter: document.querySelector('#category-filter'),
+    countryFilter: document.querySelector('#country-filter'),
+    investorFilter: document.querySelector('#investor-filter'),
+    resultCount: document.querySelector('#result-count'),
+    emptyState: document.querySelector('#empty-state'),
+    clearButton: document.querySelector('#clear-button'),
+  };
+  const filters = { query: '', state: '', category: '', country: '', investor: '' };
+
+  addOptions(elements.stateFilter, unique(entities.map((entity) => entity.public_state)));
+  addOptions(elements.categoryFilter, unique(entities.map((entity) => entity.category)));
+  addOptions(elements.countryFilter, unique(entities.map((entity) => entity.country)));
+  addOptions(elements.investorFilter, unique(entities.flatMap((entity) =>
+    Array.isArray(entity.investors) ? entity.investors.map((investor) => investor.name) : [],
+  )));
+
+  const update = () => {
+    const query = filters.query.toLocaleLowerCase();
+    const filtered = entities.filter((entity) => {
+      const investorNames = Array.isArray(entity.investors)
+        ? entity.investors.map((investor) => investor.name)
+        : [];
+      const haystack = [entity.name, entity.category, entity.country, entity.evidence_summary, ...investorNames]
+        .map(clean).join(' ').toLocaleLowerCase();
+      return (!query || haystack.includes(query))
+        && (!filters.state || entity.public_state === filters.state)
+        && (!filters.category || entity.category === filters.category)
+        && (!filters.country || entity.country === filters.country)
+        && (!filters.investor || investorNames.includes(filters.investor));
+    });
+    elements.resultCount.textContent = plural(filtered.length, singular, pluralForm);
+    elements.emptyState.hidden = filtered.length > 0;
+    renderCompanyGrid(elements.grid, filtered);
+  };
+
+  elements.search.addEventListener('input', (event) => { filters.query = event.currentTarget.value.trim(); update(); });
+  elements.stateFilter.addEventListener('change', (event) => { filters.state = event.currentTarget.value; update(); });
+  elements.categoryFilter.addEventListener('change', (event) => { filters.category = event.currentTarget.value; update(); });
+  elements.countryFilter.addEventListener('change', (event) => { filters.country = event.currentTarget.value; update(); });
+  elements.investorFilter.addEventListener('change', (event) => { filters.investor = event.currentTarget.value; update(); });
+  elements.clearButton.addEventListener('click', () => {
+    Object.assign(filters, { query: '', state: '', category: '', country: '', investor: '' });
+    elements.search.value = '';
+    elements.stateFilter.value = '';
+    elements.categoryFilter.value = '';
+    elements.countryFilter.value = '';
+    elements.investorFilter.value = '';
+    update();
+  });
+  update();
 }
 
 function showLoading(label = 'Loading from Neon…') {
@@ -293,18 +385,6 @@ async function renderHome(version) {
 
   const { companies, screening } = await getDirectory();
   if (version !== routeVersion) return;
-  const elements = {
-    grid: document.querySelector('#company-grid'),
-    search: document.querySelector('#search'),
-    stateFilter: document.querySelector('#state-filter'),
-    categoryFilter: document.querySelector('#category-filter'),
-    countryFilter: document.querySelector('#country-filter'),
-    investorFilter: document.querySelector('#investor-filter'),
-    resultCount: document.querySelector('#result-count'),
-    emptyState: document.querySelector('#empty-state'),
-    clearButton: document.querySelector('#clear-button'),
-  };
-  const filters = { query: '', state: '', category: '', country: '', investor: '' };
 
   const screenedCount = Number(screening.screenedCount || 0);
   const mainCount = Number(screening.mainCount || 0);
@@ -316,47 +396,39 @@ async function renderHome(version) {
   document.querySelector('#main-outcome').textContent = `${mainCount} reached Main`;
   document.querySelector('#pending-outcome').textContent = `${pendingCount} are Pending`;
   document.querySelector('#screening-note').textContent = `Percentages use all ${screenedCount} fully screened companies as the denominator. The remaining ${notPublishedCount} are not published.`;
-  addOptions(elements.stateFilter, unique(companies.map((company) => company.public_state)));
-  addOptions(elements.categoryFilter, unique(companies.map((company) => company.category)));
-  addOptions(elements.countryFilter, unique(companies.map((company) => company.country)));
-  addOptions(elements.investorFilter, unique(companies.flatMap((company) =>
-    Array.isArray(company.investors) ? company.investors.map((investor) => investor.name) : [],
-  )));
+  setupDirectoryFilters(companies);
+}
 
-  const update = () => {
-    const query = filters.query.toLocaleLowerCase();
-    const filtered = companies.filter((company) => {
-      const investorNames = Array.isArray(company.investors)
-        ? company.investors.map((investor) => investor.name)
-        : [];
-      const haystack = [company.name, company.category, company.country, company.evidence_summary, ...investorNames]
-        .map(clean).join(' ').toLocaleLowerCase();
-      return (!query || haystack.includes(query))
-        && (!filters.state || company.public_state === filters.state)
-        && (!filters.category || company.category === filters.category)
-        && (!filters.country || company.country === filters.country)
-        && (!filters.investor || investorNames.includes(filters.investor));
-    });
-    elements.resultCount.textContent = plural(filtered.length, 'company', 'companies');
-    elements.emptyState.hidden = filtered.length > 0;
-    renderCompanyGrid(elements.grid, filtered);
-  };
-
-  elements.search.addEventListener('input', (event) => { filters.query = event.currentTarget.value.trim(); update(); });
-  elements.stateFilter.addEventListener('change', (event) => { filters.state = event.currentTarget.value; update(); });
-  elements.categoryFilter.addEventListener('change', (event) => { filters.category = event.currentTarget.value; update(); });
-  elements.countryFilter.addEventListener('change', (event) => { filters.country = event.currentTarget.value; update(); });
-  elements.investorFilter.addEventListener('change', (event) => { filters.investor = event.currentTarget.value; update(); });
-  elements.clearButton.addEventListener('click', () => {
-    Object.assign(filters, { query: '', state: '', category: '', country: '', investor: '' });
-    elements.search.value = '';
-    elements.stateFilter.value = '';
-    elements.categoryFilter.value = '';
-    elements.countryFilter.value = '';
-    elements.investorFilter.value = '';
-    update();
-  });
-  update();
+async function renderAssets(version) {
+  document.title = 'Clinical assets & drugs — useful.vc';
+  showLoading('Loading clinical assets and drugs from Neon…');
+  const payload = await getAssetsDirectory();
+  if (version !== routeVersion) return;
+  const assets = payload.assets;
+  appMain.innerHTML = `
+    <section class="page-hero compact-hero asset-hero">
+      <p class="eyebrow">Drugs, diagnostics & clinical devices</p>
+      <h1>Useful clinical assets,<br />listed on their own terms.</h1>
+      <p class="hero-copy">Therapeutic programs, pathology-specific diagnostics, implants and invasive interventions are screened with the same rigor as companies, but kept separate so the company directory stays a company directory.</p>
+      <div class="stats"><div><strong>${payload.assetCount}</strong><span>Published clinical assets</span></div><div><strong>${payload.mainCount}</strong><span>Main</span></div><div><strong>${payload.pendingCount}</strong><span>Pending</span></div></div>
+    </section>
+    <section class="directory detail-directory" aria-labelledby="asset-directory-title">
+      <div class="directory-heading">
+        <div><p class="eyebrow">Separate directory</p><h2 id="asset-directory-title">Explore clinical assets & drugs</h2></div>
+        <p id="result-count" class="result-count" aria-live="polite">${plural(assets.length, 'clinical asset', 'clinical assets')}</p>
+      </div>
+      <div class="filters" aria-label="Clinical asset and drug filters">
+        <label class="search-field"><span class="sr-only">Search clinical assets, drugs and investors</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg><input id="search" type="search" placeholder="Search diagnostic, device, drug, pathology or investor" autocomplete="off" /></label>
+        <label><span class="sr-only">Status</span><select id="state-filter"><option value="">All statuses</option></select></label>
+        <label><span class="sr-only">Sector</span><select id="category-filter"><option value="">All sectors</option></select></label>
+        <label><span class="sr-only">Country</span><select id="country-filter"><option value="">All countries</option></select></label>
+        <label><span class="sr-only">Investor</span><select id="investor-filter"><option value="">All investors</option></select></label>
+      </div>
+      <div id="empty-state" class="notice" hidden><strong>No clinical asset matches these filters.</strong><button id="clear-button" type="button">Clear filters</button></div>
+      <div id="company-grid" class="company-grid" aria-busy="true"></div>
+    </section>
+  `;
+  setupDirectoryFilters(assets, { singular: 'clinical asset', plural: 'clinical assets' });
 }
 
 function appendCountryCard(grid, country) {
@@ -580,6 +652,7 @@ async function route() {
 
   try {
     if (pathname === '/') await renderHome(version);
+    else if (pathname === '/assets') await renderAssets(version);
     else if (pathname === '/countries') await renderCountries(version);
     else if (pathname.startsWith('/countries/')) await renderCountryDetail(version, decodeURIComponent(pathname.slice('/countries/'.length)));
     else if (pathname === '/investors') await renderInvestors(version);
@@ -619,4 +692,3 @@ dialogClose.addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
 
 route();
-

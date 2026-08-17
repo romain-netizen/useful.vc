@@ -252,6 +252,8 @@ h2 { font-family: Georgia, serif; font-size: clamp(40px, 5vw, 68px); font-weight
 }
 
 .company-card[data-state="main"] .card-button { background: linear-gradient(145deg, #f7faee, #fbfaf5 65%); }
+.company-card[data-entity-type="asset"] .card-button,
+.company-card[data-entity-type="drug"] .card-button { background: linear-gradient(145deg, #fff4df, #fbfaf5 68%); }
 .card-button:hover { transform: translateY(-4px); border-color: rgba(21,62,50,0.35); box-shadow: var(--shadow); }
 .card-button:focus-visible { outline: 3px solid rgba(21,62,50,0.28); outline-offset: 2px; }
 
@@ -419,6 +421,11 @@ dialog h2 { margin-top: 24px; padding-right: 44px; }
   transform: rotate(14deg);
 }
 
+.asset-hero::after {
+  background: radial-gradient(circle at 45% 42%, rgba(243, 214, 158, 0.72), transparent 38%);
+  transform: rotate(7deg);
+}
+
 .back-link {
   display: inline-flex;
   margin-bottom: 62px;
@@ -584,4 +591,3 @@ dialog h2 { margin-top: 24px; padding-right: 44px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
-
