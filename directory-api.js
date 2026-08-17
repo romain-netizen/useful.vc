@@ -35,17 +35,58 @@ function slugify(value) {
     .replace(/^-+|-+$/g, '');
 }
 
+// Public display is intentionally manager-level while Neon keeps exact
+// fund/vehicle relationships. Racine² is deliberately NOT mapped to Serena.
+function publicManagerName(value) {
+  const name = String(value || '').trim();
+  if (!name) return name;
+
+  if (/^Kurma(?:\s|$)/i.test(name) || /^Paris Saclay Seed Fund$/i.test(name)) {
+    return 'Kurma Partners';
+  }
+  if (/^Partech Impact$/i.test(name) || /^Partech \(former\)$/i.test(name)) {
+    return 'Partech';
+  }
+  if (/^Ring (?:Africa|Generations|Mission)$/i.test(name)) {
+    return 'Ring Capital';
+  }
+  if (/^Andera Partners \/ BioDiscovery \(andera Life Sciences\)$/i.test(name)
+      || /^Andera Partners BioDiscovery\b/i.test(name)) {
+    return 'Andera Partners';
+  }
+  if (/^4Elements Fund I$/i.test(name)) {
+    return '4Elements Venture';
+  }
+  return name;
+}
+
 function decorateCompanies(companies) {
-  return companies.map((company) => ({
-    ...company,
-    investors: Array.isArray(company.investors)
-      ? company.investors.map((investor) => ({
-        ...investor,
-        slug: slugify(investor.name),
-        source_types: Array.isArray(investor.source_types) ? investor.source_types : [],
-      }))
-      : [],
-  }));
+  return companies.map((company) => {
+    const investorMap = new Map();
+    for (const rawInvestor of Array.isArray(company.investors) ? company.investors : []) {
+      const name = publicManagerName(rawInvestor.name);
+      const slug = slugify(name);
+      if (!slug) continue;
+
+      if (!investorMap.has(slug)) {
+        investorMap.set(slug, {
+          ...rawInvestor,
+          name,
+          slug,
+          source_types: [],
+        });
+      }
+      const investor = investorMap.get(slug);
+      const sourceTypes = Array.isArray(rawInvestor.source_types) ? rawInvestor.source_types : [];
+      investor.source_types = [...new Set([...investor.source_types, ...sourceTypes])].sort();
+      investor.source_type = investor.source_types.join(', ');
+    }
+
+    return {
+      ...company,
+      investors: [...investorMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  });
 }
 
 async function getCompanies(databaseUrl) {
@@ -215,7 +256,17 @@ async function getFundMetadata(databaseUrl) {
       AND COALESCE(v.status, '') NOT ILIKE 'Invalid%'
     ORDER BY v.name
   `;
-  return funds.map((fund) => ({ ...fund, slug: slugify(fund.name) }));
+
+  const managerMap = new Map();
+  for (const fund of funds) {
+    const name = publicManagerName(fund.name);
+    const slug = slugify(name);
+    const normalized = { ...fund, name, slug };
+    const existing = managerMap.get(slug);
+    const isCanonicalManagerRow = fund.name.trim().toLowerCase() === name.toLowerCase();
+    if (!existing || isCanonicalManagerRow) managerMap.set(slug, normalized);
+  }
+  return [...managerMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 async function getInvestors(databaseUrl, companies = null) {
@@ -260,7 +311,7 @@ async function companiesResponse(request, databaseUrl) {
   return jsonResponse(request, 200, {
     companies,
     screening,
-    source: 'Neon public.public_companies with merged investor and VC-fund relationships',
+    source: 'Neon granular investor/fund relationships normalized to management-company display',
     generatedAt: new Date().toISOString(),
   });
 }
@@ -283,7 +334,7 @@ async function countriesResponse(request, databaseUrl, pathname) {
   return jsonResponse(request, 200, {
     country,
     companies: companies.filter((company) => company.country?.trim() === country.name),
-    source: 'Neon public.public_companies with merged investor and VC-fund relationships',
+    source: 'Neon granular investor/fund relationships normalized to management-company display',
     generatedAt: new Date().toISOString(),
   });
 }
@@ -299,7 +350,7 @@ async function investorsResponse(request, databaseUrl, pathname) {
       investors,
       funds: investors,
       company_count: companies.filter((company) => company.investors.length).length,
-      source: 'Neon public.investors, public.company_investors, public.vc_funds, public.company_vc_sources and public.public_companies',
+      source: 'Neon granular investor/fund relationships normalized to management-company display',
       generatedAt: new Date().toISOString(),
     });
   }
@@ -314,7 +365,7 @@ async function investorsResponse(request, databaseUrl, pathname) {
     investor,
     fund: investor,
     companies: investorCompanies,
-    source: 'Neon public.investors, public.company_investors, public.vc_funds, public.company_vc_sources and public.public_companies',
+    source: 'Neon granular investor/fund relationships normalized to management-company display',
     generatedAt: new Date().toISOString(),
   });
 }
@@ -356,4 +407,3 @@ export async function handleApiRequest(request, databaseUrl) {
 
   return jsonResponse(request, 404, { error: 'not_found' });
 }
-
