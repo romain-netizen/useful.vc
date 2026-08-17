@@ -319,7 +319,7 @@ async function serveStatic(req, res, pathname) {
   }
 
   try {
-    await sendFile(req, res, filePath, requested === '/index.html' ? 'no-cache' : 'public, max-age=3600');
+    await sendFile(req, res, filePath, 'no-cache');
   } catch {
     if (isApplicationRoute(pathname)) {
       await sendFile(req, res, join(PUBLIC_DIR, 'index.html'), 'no-cache');
@@ -358,3 +358,4 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
