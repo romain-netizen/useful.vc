@@ -7,7 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/hcvc_probe.mjs && node server.js",
     "check": "node --check server.js && node --check public/app.js"
   },
   "dependencies": {
