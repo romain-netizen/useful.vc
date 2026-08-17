@@ -5,12 +5,14 @@ Public, evidence-led directory backed directly by Neon Postgres.
 ## Architecture
 
 - A small Node.js HTTP server serves the site and JSON API.
-- `GET /api/companies` reads `public.public_companies` from Neon on every request.
+- `GET /api/companies` reads `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
+- `GET /api/investors` and `GET /api/investors/:slug` expose the searchable investor index; the legacy `/api/vcs` routes remain compatible.
+- `/countries` and `/investors` provide public indexes and detail pages without duplicating business data in the application.
 - `GET /healthz` verifies that the server can reach Neon.
 - The browser never receives database credentials and has no write path.
 - Railway runs the server from the repository root.
 
-Neon remains the sole source of truth. There is no checked-in company dataset and no application-side business-data cache.
+Neon remains the sole source of truth. There is no checked-in company or investor dataset and no application-side business-data cache.
 
 ## Local development
 
@@ -30,4 +32,4 @@ Railway supplies `PORT` automatically.
 
 ## Data safety
 
-The deployed application executes only `SELECT` statements against the public view. It does not migrate, seed, update, or delete Neon data.
+The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.

@@ -104,7 +104,15 @@ function companyCard(company) {
   const commercial = clean(company.commercialised)
     ? `Commercial status · ${company.commercialised}`
     : 'Commercial status · Not specified';
-  button.append(topLine, body, createElement('p', 'card-commercial', commercial));
+  const cardFooter = createElement('div', 'card-footer');
+  const investors = Array.isArray(company.investors) ? company.investors : [];
+  if (investors.length) {
+    const names = investors.slice(0, 3).map((investor) => investor.name).join(' · ');
+    const remainder = investors.length > 3 ? ` +${investors.length - 3}` : '';
+    cardFooter.append(createElement('p', 'card-investors', `Investors · ${names}${remainder}`));
+  }
+  cardFooter.append(createElement('p', 'card-commercial', commercial));
+  button.append(topLine, body, cardFooter);
   button.addEventListener('click', () => openCompany(company));
   article.append(button);
   return article;
@@ -143,12 +151,12 @@ function openCompany(company) {
     countryLink.dataset.route = '';
     profileLinks.append(countryLink);
   }
-  if (Array.isArray(company.vc_funds)) {
-    for (const fund of company.vc_funds) {
-      const fundLink = createElement('a', 'secondary-link', fund.name);
-      fundLink.href = `/vcs/${fund.slug}`;
-      fundLink.dataset.route = '';
-      profileLinks.append(fundLink);
+  if (Array.isArray(company.investors)) {
+    for (const investor of company.investors) {
+      const investorLink = createElement('a', 'secondary-link', investor.name);
+      investorLink.href = `/investors/${investor.slug}`;
+      investorLink.dataset.route = '';
+      profileLinks.append(investorLink);
     }
   }
   if (profileLinks.childElementCount) container.append(profileLinks);
@@ -237,10 +245,11 @@ async function renderHome(version) {
         <p id="result-count" class="result-count" aria-live="polite">Loading from Neon…</p>
       </div>
       <div class="filters" aria-label="Directory filters">
-        <label class="search-field"><span class="sr-only">Search companies</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg><input id="search" type="search" placeholder="Search company, sector or country" autocomplete="off" /></label>
+        <label class="search-field"><span class="sr-only">Search companies and investors</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg><input id="search" type="search" placeholder="Search company, sector, country or investor" autocomplete="off" /></label>
         <label><span class="sr-only">Status</span><select id="state-filter"><option value="">All statuses</option></select></label>
         <label><span class="sr-only">Sector</span><select id="category-filter"><option value="">All sectors</option></select></label>
         <label><span class="sr-only">Country</span><select id="country-filter"><option value="">All countries</option></select></label>
+        <label><span class="sr-only">Investor</span><select id="investor-filter"><option value="">All investors</option></select></label>
       </div>
       <div id="empty-state" class="notice" hidden><strong>No company matches these filters.</strong><button id="clear-button" type="button">Clear filters</button></div>
       <div id="company-grid" class="company-grid" aria-busy="true"></div>
@@ -263,11 +272,12 @@ async function renderHome(version) {
     stateFilter: document.querySelector('#state-filter'),
     categoryFilter: document.querySelector('#category-filter'),
     countryFilter: document.querySelector('#country-filter'),
+    investorFilter: document.querySelector('#investor-filter'),
     resultCount: document.querySelector('#result-count'),
     emptyState: document.querySelector('#empty-state'),
     clearButton: document.querySelector('#clear-button'),
   };
-  const filters = { query: '', state: '', category: '', country: '' };
+  const filters = { query: '', state: '', category: '', country: '', investor: '' };
 
   document.querySelector('#total-count').textContent = String(companies.length);
   document.querySelector('#main-count').textContent = String(companies.filter((company) => company.public_state === 'Main').length);
@@ -275,16 +285,23 @@ async function renderHome(version) {
   addOptions(elements.stateFilter, unique(companies.map((company) => company.public_state)));
   addOptions(elements.categoryFilter, unique(companies.map((company) => company.category)));
   addOptions(elements.countryFilter, unique(companies.map((company) => company.country)));
+  addOptions(elements.investorFilter, unique(companies.flatMap((company) =>
+    Array.isArray(company.investors) ? company.investors.map((investor) => investor.name) : [],
+  )));
 
   const update = () => {
     const query = filters.query.toLocaleLowerCase();
     const filtered = companies.filter((company) => {
-      const haystack = [company.name, company.category, company.country, company.evidence_summary]
+      const investorNames = Array.isArray(company.investors)
+        ? company.investors.map((investor) => investor.name)
+        : [];
+      const haystack = [company.name, company.category, company.country, company.evidence_summary, ...investorNames]
         .map(clean).join(' ').toLocaleLowerCase();
       return (!query || haystack.includes(query))
         && (!filters.state || company.public_state === filters.state)
         && (!filters.category || company.category === filters.category)
-        && (!filters.country || company.country === filters.country);
+        && (!filters.country || company.country === filters.country)
+        && (!filters.investor || investorNames.includes(filters.investor));
     });
     elements.resultCount.textContent = plural(filtered.length, 'company', 'companies');
     elements.emptyState.hidden = filtered.length > 0;
@@ -295,12 +312,14 @@ async function renderHome(version) {
   elements.stateFilter.addEventListener('change', (event) => { filters.state = event.currentTarget.value; update(); });
   elements.categoryFilter.addEventListener('change', (event) => { filters.category = event.currentTarget.value; update(); });
   elements.countryFilter.addEventListener('change', (event) => { filters.country = event.currentTarget.value; update(); });
+  elements.investorFilter.addEventListener('change', (event) => { filters.investor = event.currentTarget.value; update(); });
   elements.clearButton.addEventListener('click', () => {
-    Object.assign(filters, { query: '', state: '', category: '', country: '' });
+    Object.assign(filters, { query: '', state: '', category: '', country: '', investor: '' });
     elements.search.value = '';
     elements.stateFilter.value = '';
     elements.categoryFilter.value = '';
     elements.countryFilter.value = '';
+    elements.investorFilter.value = '';
     update();
   });
   update();
@@ -372,66 +391,97 @@ async function renderCountryDetail(version, slug) {
   renderCompanyGrid(document.querySelector('#company-grid'), companies);
 }
 
-function appendFundCard(grid, fund) {
+function investorDescription(investor) {
+  if (clean(investor.fund_type)) return investor.fund_type;
+  if (clean(investor.notes)) return investor.notes;
+  const sources = Array.isArray(investor.source_types) ? investor.source_types.filter(clean) : [];
+  if (sources.length) return `Recorded as ${sources.join(' and ').toLowerCase()} in the source research.`;
+  return 'Investor connected to one or more companies in the public directory.';
+}
+
+function appendInvestorCard(grid, investor) {
   const link = createElement('a', 'entity-card fund-card');
-  link.href = `/vcs/${fund.slug}`;
+  link.href = `/investors/${investor.slug}`;
   link.dataset.route = '';
   const top = createElement('div', 'entity-card-top');
-  top.append(createElement('span', 'entity-kicker', clean(fund.status) || 'Portfolio reviewed'), createElement('span', 'card-arrow', '↗'));
+  top.append(
+    createElement('span', 'entity-kicker', plural(investor.company_count, 'public company', 'public companies')),
+    createElement('span', 'card-arrow', '↗'),
+  );
   link.append(
     top,
-    createElement('h2', '', fund.name),
-    createElement('p', 'entity-summary', clean(fund.fund_type) || clean(fund.notes) || 'Venture fund represented in the useful.vc directory.'),
-    createElement('p', 'entity-foot', `${plural(fund.company_count, 'published company', 'published companies')} · ${fund.main_count} Main · ${fund.pending_count} Pending`),
+    createElement('h2', '', investor.name),
+    createElement('p', 'entity-summary', investorDescription(investor)),
+    createElement('p', 'entity-foot', `${investor.main_count} Main · ${investor.pending_count} Pending`),
   );
   grid.append(link);
 }
 
-async function renderVcs(version) {
-  document.title = 'VC Funds — useful.vc';
-  showLoading('Loading VC funds from Neon…');
-  const payload = await fetchJson('/api/vcs');
+async function renderInvestors(version) {
+  document.title = 'Investors — useful.vc';
+  showLoading('Loading investors from Neon…');
+  const payload = await fetchJson('/api/investors');
   if (version !== routeVersion) return;
-  const funds = Array.isArray(payload.funds) ? payload.funds : [];
+  const investors = Array.isArray(payload.investors) ? payload.investors : [];
   appMain.innerHTML = `
     <section class="page-hero compact-hero vc-hero">
-      <p class="eyebrow">Venture portfolios</p>
-      <h1>Funds backing<br />useful companies.</h1>
-      <p class="hero-copy">A public view of the real named funds whose portfolios intersect with the useful.vc directory.</p>
-      <div class="stats"><div><strong>${funds.length}</strong><span>Named funds</span></div><div><strong>${payload.company_count || 0}</strong><span>Linked public companies</span></div></div>
+      <p class="eyebrow">Capital network</p>
+      <h1>Investors backing<br />useful companies.</h1>
+      <p class="hero-copy">Every investor recorded during company research, made searchable whenever it is linked to a company in the public directory.</p>
+      <div class="stats"><div><strong>${investors.length}</strong><span>Recorded investors</span></div><div><strong>${payload.company_count || 0}</strong><span>Linked public companies</span></div></div>
     </section>
     <section class="listing-section">
-      <div class="section-heading"><div><p class="eyebrow">VC index</p><h2>Explore the funds</h2></div></div>
-      <div id="fund-grid" class="entity-grid fund-grid"></div>
+      <div class="section-heading"><div><p class="eyebrow">Investor index</p><h2>Explore the investors</h2></div><p id="investor-result-count" class="result-count" aria-live="polite"></p></div>
+      <label class="search-field entity-search"><span class="sr-only">Search investors</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg><input id="investor-search" type="search" placeholder="Search fund or investor" autocomplete="off" /></label>
+      <div id="investor-empty" class="notice" hidden><strong>No investor matches this search.</strong><button id="investor-clear" type="button">Clear search</button></div>
+      <div id="investor-grid" class="entity-grid fund-grid"></div>
     </section>
   `;
-  const grid = document.querySelector('#fund-grid');
-  funds.forEach((fund) => appendFundCard(grid, fund));
+  const grid = document.querySelector('#investor-grid');
+  const search = document.querySelector('#investor-search');
+  const resultCount = document.querySelector('#investor-result-count');
+  const emptyState = document.querySelector('#investor-empty');
+  const clearButton = document.querySelector('#investor-clear');
+  const update = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    const filtered = investors.filter((investor) =>
+      [investor.name, investor.fund_type, investor.notes, ...(investor.source_types || [])]
+        .map(clean).join(' ').toLocaleLowerCase().includes(query),
+    );
+    grid.replaceChildren();
+    filtered.forEach((investor) => appendInvestorCard(grid, investor));
+    resultCount.textContent = plural(filtered.length, 'investor');
+    emptyState.hidden = filtered.length > 0;
+  };
+  search.addEventListener('input', update);
+  clearButton.addEventListener('click', () => { search.value = ''; update(); search.focus(); });
+  update();
 }
 
-function appendFundMetadata(container, fund) {
+function appendInvestorMetadata(container, investor) {
   const list = createElement('dl', 'fund-details');
   [
-    detailRow('Fund type', fund.fund_type),
-    detailRow('Country', fund.country),
-    detailRow('Review status', fund.status),
-    detailRow('France qualification', fund.france_qualification),
-    detailRow('Portfolio companies found', fund.portfolio_companies_found ? String(fund.portfolio_companies_found) : ''),
-    detailRow('Companies processed', fund.companies_processed ? String(fund.companies_processed) : ''),
-    detailRow('Last scanned', formatDate(fund.last_scanned)),
+    detailRow('Fund type', investor.fund_type),
+    detailRow('Country', investor.country),
+    detailRow('Review status', investor.status),
+    detailRow('France qualification', investor.france_qualification),
+    detailRow('Research source', Array.isArray(investor.source_types) ? investor.source_types.join(' · ') : ''),
+    detailRow('Portfolio companies found', investor.portfolio_companies_found ? String(investor.portfolio_companies_found) : ''),
+    detailRow('Companies processed', investor.companies_processed ? String(investor.companies_processed) : ''),
+    detailRow('Last scanned', formatDate(investor.last_scanned)),
   ].filter(Boolean).forEach((row) => list.append(row));
   if (list.childElementCount) container.append(list);
 
   const links = createElement('div', 'profile-links');
-  const website = safeWebsite(fund.website);
+  const website = safeWebsite(investor.website);
   if (website) {
-    const link = createElement('a', 'website-link', `Visit ${fund.name} ↗`);
+    const link = createElement('a', 'website-link', `Visit ${investor.name} ↗`);
     link.href = website.href;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     links.append(link);
   }
-  const portfolio = safeWebsite(fund.portfolio_url);
+  const portfolio = safeWebsite(investor.portfolio_url);
   if (portfolio && (!website || portfolio.href !== website.href)) {
     const link = createElement('a', 'secondary-link', 'View source portfolio ↗');
     link.href = portfolio.href;
@@ -442,45 +492,47 @@ function appendFundMetadata(container, fund) {
   if (links.childElementCount) container.append(links);
 }
 
-async function renderVcDetail(version, slug) {
-  showLoading('Loading fund profile from Neon…');
+async function renderInvestorDetail(version, slug, legacyPath = false) {
+  showLoading('Loading investor profile from Neon…');
   let payload;
   try {
-    payload = await fetchJson(`/api/vcs/${encodeURIComponent(slug)}`);
+    payload = await fetchJson(`/api/investors/${encodeURIComponent(slug)}`);
   } catch (error) {
-    if (error.status === 404) { renderNotFound('VC fund'); return; }
+    if (error.status === 404) { renderNotFound('Investor'); return; }
     throw error;
   }
   if (version !== routeVersion) return;
-  const { fund } = payload;
+  const { investor } = payload;
   const companies = Array.isArray(payload.companies) ? payload.companies : [];
-  document.title = `${fund.name} — useful.vc`;
+  if (legacyPath) window.history.replaceState({}, '', `/investors/${investor.slug}`);
+  document.title = `${investor.name} — useful.vc`;
   appMain.innerHTML = `
     <section class="page-hero detail-hero vc-detail-hero">
-      <a class="back-link" href="/vcs" data-route>← All VC funds</a>
-      <p class="eyebrow">VC fund profile</p>
+      <a class="back-link" href="/investors" data-route>← All investors</a>
+      <p class="eyebrow">Investor profile</p>
       <h1 id="entity-title"></h1>
-      <p id="fund-summary" class="hero-copy"></p>
-      <div class="stats"><div><strong>${fund.company_count}</strong><span>Published</span></div><div><strong>${fund.main_count}</strong><span>Main list</span></div><div><strong>${fund.pending_count}</strong><span>Pending</span></div></div>
-      <div id="fund-metadata" class="fund-metadata"></div>
+      <p id="investor-summary" class="hero-copy"></p>
+      <div class="stats"><div><strong>${investor.company_count}</strong><span>Published</span></div><div><strong>${investor.main_count}</strong><span>Main list</span></div><div><strong>${investor.pending_count}</strong><span>Pending</span></div></div>
+      <div id="investor-metadata" class="fund-metadata"></div>
     </section>
     <section class="directory detail-directory">
-      <div class="directory-heading"><div><p class="eyebrow">Portfolio intersection</p><h2>Companies in the directory</h2></div><p class="result-count">${plural(companies.length, 'company', 'companies')}</p></div>
+      <div class="directory-heading"><div><p class="eyebrow">Recorded investments</p><h2>Companies in the directory</h2></div><p class="result-count">${plural(companies.length, 'company', 'companies')}</p></div>
       <div id="company-grid" class="company-grid" aria-busy="true"></div>
     </section>
   `;
-  document.querySelector('#entity-title').textContent = fund.name;
-  document.querySelector('#fund-summary').textContent = clean(fund.notes) || clean(fund.fund_type) || 'A named venture fund represented in the useful.vc directory.';
-  appendFundMetadata(document.querySelector('#fund-metadata'), fund);
+  document.querySelector('#entity-title').textContent = investor.name;
+  document.querySelector('#investor-summary').textContent = investorDescription(investor);
+  appendInvestorMetadata(document.querySelector('#investor-metadata'), investor);
   renderCompanyGrid(document.querySelector('#company-grid'), companies);
 }
 
 function setActiveNavigation(pathname) {
+  const activePath = pathname.replace(/^\/vcs(?=\/|$)/, '/investors');
   document.querySelectorAll('.site-nav a').forEach((link) => {
     const linkPath = new URL(link.href).pathname;
     const active = linkPath === '/'
-      ? pathname === '/'
-      : pathname === linkPath || pathname.startsWith(`${linkPath}/`);
+      ? activePath === '/'
+      : activePath === linkPath || activePath.startsWith(`${linkPath}/`);
     if (active) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
@@ -496,8 +548,13 @@ async function route() {
     if (pathname === '/') await renderHome(version);
     else if (pathname === '/countries') await renderCountries(version);
     else if (pathname.startsWith('/countries/')) await renderCountryDetail(version, decodeURIComponent(pathname.slice('/countries/'.length)));
-    else if (pathname === '/vcs') await renderVcs(version);
-    else if (pathname.startsWith('/vcs/')) await renderVcDetail(version, decodeURIComponent(pathname.slice('/vcs/'.length)));
+    else if (pathname === '/investors') await renderInvestors(version);
+    else if (pathname.startsWith('/investors/')) await renderInvestorDetail(version, decodeURIComponent(pathname.slice('/investors/'.length)));
+    else if (pathname === '/vcs') {
+      window.history.replaceState({}, '', '/investors');
+      await renderInvestors(version);
+    }
+    else if (pathname.startsWith('/vcs/')) await renderInvestorDetail(version, decodeURIComponent(pathname.slice('/vcs/'.length)), true);
     else renderNotFound('Page');
   } catch (error) {
     console.error(error);

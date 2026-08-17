@@ -54,16 +54,15 @@ function slugify(value) {
     .replace(/^-+|-+$/g, '');
 }
 
-function asNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
 function decorateCompanies(companies) {
   return companies.map((company) => ({
     ...company,
-    vc_funds: Array.isArray(company.vc_funds)
-      ? company.vc_funds.map((fund) => ({ ...fund, slug: slugify(fund.name) }))
+    investors: Array.isArray(company.investors)
+      ? company.investors.map((investor) => ({
+        ...investor,
+        slug: slugify(investor.name),
+        source_types: Array.isArray(investor.source_types) ? investor.source_types : [],
+      }))
       : [],
   }));
 }
@@ -89,16 +88,52 @@ async function getCompanies() {
       COALESCE(
         (
           SELECT jsonb_agg(
-            jsonb_build_object('id', v.id, 'name', v.name)
-            ORDER BY v.name
+            jsonb_build_object(
+              'id', investor.id,
+              'name', investor.name,
+              'source_type', investor.source_type,
+              'source_types', investor.source_types
+            )
+            ORDER BY investor.name
           )
-          FROM public.company_vc_sources AS cvs
-          JOIN public.vc_funds AS v ON v.id = cvs.vc_fund_id
-          WHERE cvs.company_id = pc.id
-            AND v.name IN ('Racine²', 'Singular', 'Wind', 'Shift4Good', 'Teampact Ventures')
+          FROM (
+            SELECT
+              MIN(discovered.source_id) AS id,
+              (array_agg(discovered.name ORDER BY discovered.source_priority, discovered.name))[1] AS name,
+              string_agg(DISTINCT discovered.source_type, ', ' ORDER BY discovered.source_type) AS source_type,
+              array_agg(DISTINCT discovered.source_type ORDER BY discovered.source_type) AS source_types
+            FROM (
+              SELECT
+                'investor:' || i.id::text AS source_id,
+                i.name,
+                ci.source_type,
+                0 AS source_priority
+              FROM public.company_investors AS ci
+              JOIN public.investors AS i ON i.id = ci.investor_id
+              WHERE ci.company_id = pc.id
+
+              UNION ALL
+
+              SELECT
+                'fund:' || v.id::text AS source_id,
+                v.name,
+                'VC fund portfolio'::text AS source_type,
+                1 AS source_priority
+              FROM public.company_vc_sources AS cvs
+              JOIN public.vc_funds AS v ON v.id = cvs.vc_fund_id
+              WHERE cvs.company_id = pc.id
+                AND v.name NOT IN (
+                  'Disclosed funding sources',
+                  'Portfolio + disclosed funding sources',
+                  'Teampact portfolio review'
+                )
+                AND COALESCE(v.status, '') NOT ILIKE 'Invalid%'
+            ) AS discovered
+            GROUP BY LOWER(BTRIM(discovered.name))
+          ) AS investor
         ),
         '[]'::jsonb
-      ) AS vc_funds
+      ) AS investors
     FROM public.public_companies AS pc
     ORDER BY
       CASE pc.public_state WHEN 'Main' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END,
@@ -135,11 +170,11 @@ function buildCountries(companies) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function getVcFunds() {
+async function getFundMetadata() {
   const sql = database();
   const funds = await sql`
     SELECT
-      v.id,
+      v.id AS fund_id,
       v.name,
       v.country,
       v.status,
@@ -153,34 +188,122 @@ async function getVcFunds() {
       v.companies_processed,
       v.unique_new_companies,
       v.last_scanned,
-      v.completed_at,
-      COUNT(DISTINCT pc.id)::integer AS company_count,
-      COUNT(DISTINCT pc.id) FILTER (WHERE pc.public_state = 'Main')::integer AS main_count,
-      COUNT(DISTINCT pc.id) FILTER (WHERE pc.public_state = 'Pending')::integer AS pending_count
+      v.completed_at
     FROM public.vc_funds AS v
-    LEFT JOIN public.company_vc_sources AS cvs ON cvs.vc_fund_id = v.id
-    LEFT JOIN public.public_companies AS pc ON pc.id = cvs.company_id
-    WHERE v.name IN ('Racine²', 'Singular', 'Wind', 'Shift4Good', 'Teampact Ventures')
-    GROUP BY v.id
-    ORDER BY
-      CASE v.name
-        WHEN 'Racine²' THEN 1
-        WHEN 'Singular' THEN 2
-        WHEN 'Wind' THEN 3
-        WHEN 'Shift4Good' THEN 4
-        WHEN 'Teampact Ventures' THEN 5
-        ELSE 6
-      END,
-      v.name ASC
+    WHERE v.name NOT IN (
+      'Disclosed funding sources',
+      'Portfolio + disclosed funding sources',
+      'Teampact portfolio review'
+    )
+      AND COALESCE(v.status, '') NOT ILIKE 'Invalid%'
+    ORDER BY v.name
   `;
+  return funds.map((fund) => ({ ...fund, slug: slugify(fund.name) }));
+}
 
-  return funds.map((fund) => ({
-    ...fund,
-    slug: slugify(fund.name),
-    company_count: asNumber(fund.company_count),
-    main_count: asNumber(fund.main_count),
-    pending_count: asNumber(fund.pending_count),
-  }));
+async function getInvestors(companies = null) {
+  const companyList = companies || await getCompanies();
+  const funds = await getFundMetadata();
+  const fundBySlug = new Map(funds.map((fund) => [fund.slug, fund]));
+  const investorMap = new Map();
+
+  for (const company of companyList) {
+    for (const companyInvestor of company.investors) {
+      const slug = companyInvestor.slug;
+      if (!investorMap.has(slug)) {
+        investorMap.set(slug, {
+          ...fundBySlug.get(slug),
+          id: companyInvestor.id,
+          name: companyInvestor.name,
+          slug,
+          source_types: new Set(),
+          company_count: 0,
+          main_count: 0,
+          pending_count: 0,
+        });
+      }
+      const investor = investorMap.get(slug);
+      for (const sourceType of companyInvestor.source_types || []) investor.source_types.add(sourceType);
+      investor.company_count += 1;
+      if (company.public_state === 'Main') investor.main_count += 1;
+      if (company.public_state === 'Pending') investor.pending_count += 1;
+    }
+  }
+
+  return [...investorMap.values()]
+    .map((investor) => ({ ...investor, source_types: [...investor.source_types].sort() }))
+    .sort((a, b) => b.company_count - a.company_count || a.name.localeCompare(b.name));
+}
+
+async function sendCompanies(res) {
+  const companies = await getCompanies();
+  sendJson(res, 200, {
+    companies,
+    source: 'Neon public.public_companies with merged investor and VC-fund relationships',
+    generatedAt: new Date().toISOString(),
+  });
+}
+
+async function sendCountries(res, pathname) {
+  const companies = await getCompanies();
+  const countries = buildCountries(companies);
+  if (pathname === '/api/countries') {
+    sendJson(res, 200, {
+      countries,
+      company_count: countries.reduce((total, country) => total + country.company_count, 0),
+      source: 'Neon public.public_companies',
+      generatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  const requestedSlug = decodeURIComponent(pathname.slice('/api/countries/'.length)).replace(/\/$/, '');
+  const country = countries.find((item) => item.slug === requestedSlug);
+  if (!country) {
+    sendJson(res, 404, { error: 'country_not_found' });
+    return;
+  }
+  sendJson(res, 200, {
+    country,
+    companies: companies.filter((company) => company.country?.trim() === country.name),
+    source: 'Neon public.public_companies with merged investor and VC-fund relationships',
+    generatedAt: new Date().toISOString(),
+  });
+}
+
+async function sendInvestors(res, pathname) {
+  const companies = await getCompanies();
+  const investors = await getInvestors(companies);
+  const isLegacyPath = pathname === '/api/vcs' || pathname.startsWith('/api/vcs/');
+  const indexPath = isLegacyPath ? '/api/vcs' : '/api/investors';
+
+  if (pathname === indexPath) {
+    sendJson(res, 200, {
+      investors,
+      funds: investors,
+      company_count: companies.filter((company) => company.investors.length).length,
+      source: 'Neon public.investors, public.company_investors, public.vc_funds, public.company_vc_sources and public.public_companies',
+      generatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  const requestedSlug = decodeURIComponent(pathname.slice(`${indexPath}/`.length)).replace(/\/$/, '');
+  const investor = investors.find((item) => item.slug === requestedSlug);
+  if (!investor) {
+    sendJson(res, 404, { error: 'investor_not_found' });
+    return;
+  }
+  const investorCompanies = companies.filter((company) =>
+    company.investors.some((companyInvestor) => companyInvestor.slug === investor.slug),
+  );
+  sendJson(res, 200, {
+    investor,
+    fund: investor,
+    companies: investorCompanies,
+    source: 'Neon public.investors, public.company_investors, public.vc_funds, public.company_vc_sources and public.public_companies',
+    generatedAt: new Date().toISOString(),
+  });
 }
 
 async function handleApi(req, res, pathname) {
@@ -202,85 +325,27 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
-  if (pathname === '/api/companies') {
-    try {
-      const companies = await getCompanies();
-      sendJson(res, 200, {
-        companies,
-        source: 'Neon public.public_companies',
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Company query failed:', error instanceof Error ? error.message : error);
-      sendJson(res, 502, { error: 'database_unavailable' });
+  try {
+    if (pathname === '/api/companies') {
+      await sendCompanies(res);
+      return;
     }
-    return;
-  }
-
-  if (pathname === '/api/countries' || pathname.startsWith('/api/countries/')) {
-    try {
-      const companies = await getCompanies();
-      const countries = buildCountries(companies);
-      if (pathname === '/api/countries') {
-        sendJson(res, 200, {
-          countries,
-          company_count: countries.reduce((total, country) => total + country.company_count, 0),
-          source: 'Neon public.public_companies',
-          generatedAt: new Date().toISOString(),
-        });
-        return;
-      }
-      const requestedSlug = decodeURIComponent(pathname.slice('/api/countries/'.length)).replace(/\/$/, '');
-      const country = countries.find((item) => item.slug === requestedSlug);
-      if (!country) {
-        sendJson(res, 404, { error: 'country_not_found' });
-        return;
-      }
-      sendJson(res, 200, {
-        country,
-        companies: companies.filter((company) => company.country?.trim() === country.name),
-        source: 'Neon public.public_companies',
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Country query failed:', error instanceof Error ? error.message : error);
-      sendJson(res, 502, { error: 'database_unavailable' });
+    if (pathname === '/api/countries' || pathname.startsWith('/api/countries/')) {
+      await sendCountries(res, pathname);
+      return;
     }
-    return;
-  }
-
-  if (pathname === '/api/vcs' || pathname.startsWith('/api/vcs/')) {
-    try {
-      const funds = await getVcFunds();
-      if (pathname === '/api/vcs') {
-        const companies = await getCompanies();
-        sendJson(res, 200, {
-          funds,
-          company_count: companies.filter((company) => company.vc_funds.length).length,
-          source: 'Neon public.vc_funds and public.company_vc_sources',
-          generatedAt: new Date().toISOString(),
-        });
-        return;
-      }
-      const requestedSlug = decodeURIComponent(pathname.slice('/api/vcs/'.length)).replace(/\/$/, '');
-      const fund = funds.find((item) => item.slug === requestedSlug);
-      if (!fund) {
-        sendJson(res, 404, { error: 'vc_not_found' });
-        return;
-      }
-      const companies = (await getCompanies()).filter((company) =>
-        company.vc_funds.some((companyFund) => String(companyFund.id) === String(fund.id)),
-      );
-      sendJson(res, 200, {
-        fund,
-        companies,
-        source: 'Neon public.vc_funds, public.company_vc_sources and public.public_companies',
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('VC query failed:', error instanceof Error ? error.message : error);
-      sendJson(res, 502, { error: 'database_unavailable' });
+    if (
+      pathname === '/api/investors'
+      || pathname.startsWith('/api/investors/')
+      || pathname === '/api/vcs'
+      || pathname.startsWith('/api/vcs/')
+    ) {
+      await sendInvestors(res, pathname);
+      return;
     }
+  } catch (error) {
+    console.error('Database query failed:', error instanceof Error ? error.message : error);
+    sendJson(res, 502, { error: 'database_unavailable' });
     return;
   }
 
@@ -291,6 +356,8 @@ function isApplicationRoute(pathname) {
   return pathname === '/'
     || pathname === '/countries'
     || /^\/countries\/[^/]+\/?$/.test(pathname)
+    || pathname === '/investors'
+    || /^\/investors\/[^/]+\/?$/.test(pathname)
     || pathname === '/vcs'
     || /^\/vcs\/[^/]+\/?$/.test(pathname);
 }
@@ -358,4 +425,3 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
-
