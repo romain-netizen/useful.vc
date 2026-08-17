@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="An evidence-led directory of useful companies, countries and their venture investors." />
+    <meta name="theme-color" content="#f3f0e8" />
+    <title>useful.vc — Companies worth knowing</title>
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" data-route aria-label="useful.vc home">
+        <span class="brand-mark" aria-hidden="true">u</span>
+        <span>useful.vc</span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="/" data-route>Companies</a>
+        <a href="/countries" data-route>Countries</a>
+        <a href="/vcs" data-route>VC Funds</a>
+        <a href="/#method" data-route>Methodology</a>
+      </nav>
+    </header>
+
+    <main id="app-main" tabindex="-1"></main>
+
+    <footer>
+      <a class="brand" href="/" data-route aria-label="useful.vc home">
+        <span class="brand-mark" aria-hidden="true">u</span>
+        <span>useful.vc</span>
+      </a>
+      <p>Evidence over adjectives.</p>
+    </footer>
+
+    <dialog id="company-dialog" aria-labelledby="dialog-title">
+      <button id="dialog-close" class="dialog-close" type="button" aria-label="Close company details">×</button>
+      <div id="dialog-content"></div>
+    </dialog>
+  </body>
+</html>
