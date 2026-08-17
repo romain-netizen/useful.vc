@@ -54,3 +54,4 @@ Railway supplies `PORT` automatically.
 ## Data safety
 
 The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.
+
