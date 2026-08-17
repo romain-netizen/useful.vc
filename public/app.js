@@ -3,7 +3,7 @@ const dialog = document.querySelector('#company-dialog');
 const dialogContent = document.querySelector('#dialog-content');
 const dialogClose = document.querySelector('#dialog-close');
 let routeVersion = 0;
-let companyCache = null;
+let directoryCache = null;
 
 function clean(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -89,16 +89,17 @@ async function fetchJson(url) {
   return payload;
 }
 
-async function getCompanies() {
-  if (!companyCache) {
-    companyCache = fetchJson('/api/companies').then((payload) =>
-      Array.isArray(payload.companies) ? payload.companies : [],
-    ).catch((error) => {
-      companyCache = null;
+async function getDirectory() {
+  if (!directoryCache) {
+    directoryCache = fetchJson('/api/companies').then((payload) => ({
+      companies: Array.isArray(payload.companies) ? payload.companies : [],
+      screening: payload.screening && typeof payload.screening === 'object' ? payload.screening : {},
+    })).catch((error) => {
+      directoryCache = null;
       throw error;
     });
   }
-  return companyCache;
+  return directoryCache;
 }
 
 function detailRow(label, value) {
@@ -257,12 +258,13 @@ async function renderHome(version) {
     <section class="hero" aria-labelledby="hero-title">
       <p class="eyebrow">The useful company index</p>
       <h1 id="hero-title">Companies moving the world<br />in a useful direction.</h1>
-      <p class="hero-copy">A selective, evidence-led directory. Every company is assessed against eight structural criteria, then reviewed for commercial and evidentiary readiness.</p>
-      <div class="stats" aria-label="Directory summary">
-        <div><strong id="total-count">—</strong><span>Published</span></div>
-        <div><strong id="main-count">—</strong><span>Main list</span></div>
-        <div><strong id="pending-count">—</strong><span>Pending evidence</span></div>
+      <p class="hero-copy">Every company is screened against eight structural criteria. Companies that pass are listed as Main when evidence-ready or Pending when further proof is still required. The rest are not published.</p>
+      <div class="stats screening-stats" aria-label="Screening outcomes">
+        <div><strong id="screened-count">—</strong><span>Fully screened</span></div>
+        <div><strong id="main-percentage">—</strong><span id="main-outcome">Reached Main</span></div>
+        <div><strong id="pending-percentage">—</strong><span id="pending-outcome">Are Pending</span></div>
       </div>
+      <p id="screening-note" class="screening-note">Percentages use all fully screened companies as the denominator.</p>
     </section>
     <section class="directory" aria-labelledby="directory-title">
       <div class="directory-heading">
@@ -289,7 +291,7 @@ async function renderHome(version) {
     </section>
   `;
 
-  const companies = await getCompanies();
+  const { companies, screening } = await getDirectory();
   if (version !== routeVersion) return;
   const elements = {
     grid: document.querySelector('#company-grid'),
@@ -304,9 +306,16 @@ async function renderHome(version) {
   };
   const filters = { query: '', state: '', category: '', country: '', investor: '' };
 
-  document.querySelector('#total-count').textContent = String(companies.length);
-  document.querySelector('#main-count').textContent = String(companies.filter((company) => company.public_state === 'Main').length);
-  document.querySelector('#pending-count').textContent = String(companies.filter((company) => company.public_state === 'Pending').length);
+  const screenedCount = Number(screening.screenedCount || 0);
+  const mainCount = Number(screening.mainCount || 0);
+  const pendingCount = Number(screening.pendingCount || 0);
+  const notPublishedCount = Number(screening.notPublishedCount || 0);
+  document.querySelector('#screened-count').textContent = String(screenedCount || '—');
+  document.querySelector('#main-percentage').textContent = `${Number(screening.mainPercentage || 0).toFixed(1)}%`;
+  document.querySelector('#pending-percentage').textContent = `${Number(screening.pendingPercentage || 0).toFixed(1)}%`;
+  document.querySelector('#main-outcome').textContent = `${mainCount} reached Main`;
+  document.querySelector('#pending-outcome').textContent = `${pendingCount} are Pending`;
+  document.querySelector('#screening-note').textContent = `Percentages use all ${screenedCount} fully screened companies as the denominator. The remaining ${notPublishedCount} are not published.`;
   addOptions(elements.stateFilter, unique(companies.map((company) => company.public_state)));
   addOptions(elements.categoryFilter, unique(companies.map((company) => company.category)));
   addOptions(elements.countryFilter, unique(companies.map((company) => company.country)));

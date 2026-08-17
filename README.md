@@ -6,6 +6,7 @@ Public, evidence-led directory backed directly by Neon Postgres.
 
 - A small Node.js HTTP server serves the site and JSON API.
 - `GET /api/companies` reads publishable rows from `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
+- The company API also reports the full screening funnel from Neon: companies with all eight criteria reviewed, plus Main and Pending counts and percentages against that denominator.
 - `GET /api/investors` and `GET /api/investors/:slug` expose the searchable investor index; the legacy `/api/vcs` routes remain compatible.
 - `/countries` and `/investors` provide public indexes and detail pages without duplicating business data in the application.
 - `GET /healthz` verifies that the server can reach Neon.

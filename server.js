@@ -143,6 +143,41 @@ async function getCompanies() {
   return decorateCompanies(companies);
 }
 
+async function getScreeningStats() {
+  const sql = database();
+  const [row] = await sql`
+    WITH screened AS (
+      SELECT c.id, c.public_state
+      FROM public.companies AS c
+      JOIN (
+        SELECT cr.company_id
+        FROM public.criterion_reviews AS cr
+        GROUP BY cr.company_id
+        HAVING COUNT(DISTINCT cr.criterion) = 8
+      ) AS completed ON completed.company_id = c.id
+    )
+    SELECT
+      COUNT(*)::integer AS screened_count,
+      COUNT(*) FILTER (WHERE public_state = 'Main')::integer AS main_count,
+      COUNT(*) FILTER (WHERE public_state = 'Pending')::integer AS pending_count
+    FROM screened
+  `;
+  const screenedCount = Number(row?.screened_count || 0);
+  const mainCount = Number(row?.main_count || 0);
+  const pendingCount = Number(row?.pending_count || 0);
+  const percentage = (count) => screenedCount > 0
+    ? Math.round((count / screenedCount) * 1000) / 10
+    : 0;
+  return {
+    screenedCount,
+    mainCount,
+    pendingCount,
+    notPublishedCount: Math.max(0, screenedCount - mainCount - pendingCount),
+    mainPercentage: percentage(mainCount),
+    pendingPercentage: percentage(pendingCount),
+  };
+}
+
 function buildCountries(companies) {
   const countries = new Map();
 
@@ -237,9 +272,10 @@ async function getInvestors(companies = null) {
 }
 
 async function sendCompanies(res) {
-  const companies = await getCompanies();
+  const [companies, screening] = await Promise.all([getCompanies(), getScreeningStats()]);
   sendJson(res, 200, {
     companies,
+    screening,
     source: 'Neon public.public_companies with merged investor and VC-fund relationships',
     generatedAt: new Date().toISOString(),
   });
