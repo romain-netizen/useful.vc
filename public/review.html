@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>useful.vc — Secondary review</title>
+  <title>useful.vc — QA Challenge</title>
   <link rel="stylesheet" href="/review.css">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
-      <div><p class="eyebrow">useful.vc</p><h1>Secondary review</h1></div>
+      <div><p class="eyebrow">useful.vc</p><h1>QA Challenge</h1><p class="muted">Red-team review of first-pass classifications</p></div>
       <button id="logout" class="ghost" hidden>Lock</button>
     </header>
     <section id="login" class="card login-card">
       <h2>Private review</h2>
-      <p>Enter the review credentials configured on Railway.</p>
+      <p>Enter the review credentials.</p>
       <form id="login-form">
-        <label>Username<input id="username" autocomplete="username" required></label>
+        <label>User<input id="username" autocomplete="username" required></label>
         <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
         <button type="submit">Open review</button>
         <p id="login-error" class="error" role="alert"></p>
@@ -29,6 +29,8 @@
         <select id="filter">
           <option value="disagreements">Disagreements first</option>
           <option value="all">All reviewed</option>
+          <option value="investor_additions">Investor additions</option>
+          <option value="investor_issues">True investor issues</option>
           <option value="fp">False-positive candidates</option>
           <option value="fn">False-negative candidates</option>
           <option value="awaiting">Awaiting adjudication</option>
