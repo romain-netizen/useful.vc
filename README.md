@@ -4,14 +4,15 @@ Public, evidence-led directory backed directly by Neon Postgres.
 
 ## Architecture
 
-- A small Node.js HTTP server serves the site and JSON API.
+- Cloudflare Workers is the production runtime. Cloudflare Static Assets serves the browser application, while `worker.js` serves the Neon-backed JSON API.
+- `directory-api.js` contains the shared, runtime-neutral API so the temporary Railway rollback service and Cloudflare return the same data.
 - `GET /api/companies` reads publishable rows from `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
 - The company API also reports the full screening funnel from Neon: companies with all eight criteria reviewed, plus Main and Pending counts and percentages against that denominator.
 - `GET /api/investors` and `GET /api/investors/:slug` expose the searchable investor index; the legacy `/api/vcs` routes remain compatible.
 - `/countries` and `/investors` provide public indexes and detail pages without duplicating business data in the application.
-- `GET /healthz` verifies that the server can reach Neon.
+- `GET /healthz` verifies that the runtime can reach Neon.
 - The browser never receives database credentials and has no write path.
-- Railway runs the server from the repository root.
+- Railway remains a temporary rollback target during the Cloudflare cutover.
 
 ## Public company content contract
 
@@ -28,6 +29,17 @@ Neon remains the sole source of truth. There is no checked-in company or investo
 2. Export the variables from that file in your shell.
 3. Run `npm install` and `npm start`.
 4. Open `http://localhost:3000`.
+
+For the Cloudflare runtime, create an uncommitted `.dev.vars` file containing `DATABASE_URL`, then run `npm run dev:cloudflare`.
+
+## Cloudflare Workers
+
+- `wrangler.jsonc` deploys `public/` as static assets and sends only `/api/*` and `/healthz` through the Worker first.
+- `DATABASE_URL` must be configured as a Cloudflare secret, never as a plaintext Wrangler variable.
+- Connect the GitHub repository in Workers Builds to deploy `main` automatically.
+- Direct country and investor URLs use the static asset single-page application fallback.
+- The private secondary-review application remains isolated on its separate Railway service during this migration and is excluded from the public Worker assets.
+- `npm run deploy:cloudflare:dry-run` validates and bundles the exact Worker payload without publishing it.
 
 ## Railway
 
