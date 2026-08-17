@@ -135,6 +135,7 @@ async function getCompanies() {
         '[]'::jsonb
       ) AS investors
     FROM public.public_companies AS pc
+    WHERE pc.publishable IS DISTINCT FROM FALSE
     ORDER BY
       CASE pc.public_state WHEN 'Main' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END,
       pc.name ASC
@@ -425,3 +426,4 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
