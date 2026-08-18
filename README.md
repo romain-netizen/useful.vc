@@ -55,3 +55,14 @@ Railway supplies `PORT` automatically.
 
 The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.
 
+## Classified write gate
+
+`migrations/20260818_phase1_classified_write_gate.sql` installs the only permitted write path for criterion claims: `public.apply_classified_claim`.
+
+- Every proposal declares one fact class: `structural`, `readiness`, `liveness`, `scope`, or `finance`.
+- Only structural claims may target C1–C8. Direct writes to either criterion-review table, or to protected company classification fields, are neutralised and recorded in `qa_monitor.claim_write_audit`.
+- Readiness routes to the qualification condition; liveness routes to lifecycle fields; scope routes to publication scope; finance routes to the funding or exit tables and requires a primary-source URL.
+- The deterministic phrase guard includes the 24 historical regression fixtures in `qa_monitor.claim_gate_fixtures`; `qa_monitor.v_claim_gate_fixture_results` reports their status.
+- Automated canonical writes to human-adjudicated company rows are neutralised and also recorded in `qa_monitor.guard_audit`.
+- The private adjudication server preflights every criterion rationale and calls the same stored procedure for criterion, readiness and canonical-state writes.
+

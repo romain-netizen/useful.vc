@@ -179,8 +179,8 @@ async function detail(res, id) {
   if (!company) return json(res, 404, { error: 'review_not_found' });
 
   const [primaryCriteria, secondaryCriteria, evidence, investors, feedback, memoryRows] = await Promise.all([
-    sql`SELECT criterion,verdict,rationale,reviewed_at,methodology_version FROM public.criterion_reviews WHERE company_id=${company.company_id} ORDER BY criterion`,
-    sql`SELECT criterion,original_verdict,proposed_verdict,agreement,rationale,missing_evidence FROM public.secondary_criterion_reviews WHERE secondary_review_id=${id} ORDER BY criterion`,
+    sql`SELECT criterion,verdict,rationale,reviewed_at,methodology_version,fact_class,writer_lane,source_reference FROM public.criterion_reviews WHERE company_id=${company.company_id} ORDER BY criterion`,
+    sql`SELECT criterion,original_verdict,proposed_verdict,agreement,rationale,missing_evidence,fact_class,writer_lane,source_reference FROM public.secondary_criterion_reviews WHERE secondary_review_id=${id} ORDER BY criterion`,
     sql`SELECT evidence_kind,criterion,source_url,publisher,source_type,publication_date,claim,support_status AS evidence_direction,notes,created_at AS retrieved_at FROM public.secondary_evidence WHERE secondary_review_id=${id} ORDER BY criterion NULLS LAST,id`,
     sql`SELECT investor_name,canonical_name,relationship_type,original_relationship_present,proposed_action,source_url,source_type,rationale FROM public.secondary_investor_reviews WHERE secondary_review_id=${id} ORDER BY proposed_action DESC,investor_name`,
     sql`SELECT decision,final_state,final_criterion_overrides,feedback_note,use_for_learning,learning_status,learning_processed_at,created_at FROM public.review_feedback WHERE secondary_review_id=${id} LIMIT 1`,
@@ -214,12 +214,89 @@ function adjudicationMethodology(decision) {
   return 'v5 — human-adjudicated QA';
 }
 
-async function stampExistingCriteria(sql, companyId, methodologyVersion) {
-  await sql`
-    UPDATE public.criterion_reviews
-    SET methodology_version=${methodologyVersion}, reviewed_at=now()
-    WHERE company_id=${companyId}
+async function applyClassifiedClaim(sql, {
+  companyId,
+  factClass,
+  claimText,
+  sourceReference,
+  criterion = null,
+  verdict = null,
+  secondaryReviewId = null,
+  payload = {},
+}) {
+  const [result] = await sql`
+    SELECT *
+    FROM public.apply_classified_claim(
+      ${companyId},
+      'human_adjudication',
+      ${factClass},
+      ${claimText},
+      ${sourceReference},
+      ${criterion},
+      ${verdict},
+      ${secondaryReviewId},
+      ${JSON.stringify(payload)}::jsonb
+    )
   `;
+  if (!result?.applied) {
+    throw new Error(`claim_gate_rejected:${result?.reason || 'unknown'}:${result?.detected_fact_class || 'unknown'}`);
+  }
+  return result;
+}
+
+function applyOverrides(criteria, overrides) {
+  const finalCriteria = new Map(criteria.map((row) => [Number(row.criterion), {
+    criterion: Number(row.criterion),
+    verdict: String(row.verdict || '').toUpperCase(),
+    rationale: String(row.rationale || ''),
+  }]));
+
+  if (!overrides || typeof overrides !== 'object') return [...finalCriteria.values()];
+  for (const [key, value] of Object.entries(overrides)) {
+    const criterion = Number(key);
+    if (!Number.isInteger(criterion) || criterion < 1 || criterion > 8) continue;
+    const verdict = String(value?.verdict || value || '').toUpperCase();
+    if (!['PASS', 'FAIL', 'UNCLEAR'].includes(verdict)) continue;
+    finalCriteria.set(criterion, {
+      criterion,
+      verdict,
+      rationale: typeof value === 'object' && value.rationale
+        ? String(value.rationale)
+        : 'Human adjudication override',
+    });
+  }
+  return [...finalCriteria.values()].sort((a, b) => a.criterion - b.criterion);
+}
+
+async function assertStructuralClaims(sql, criteria) {
+  for (const criterion of criteria) {
+    const [classification] = await sql`
+      SELECT qa_monitor.detect_fact_class(${criterion.rationale}) AS fact_class
+    `;
+    if (classification?.fact_class !== 'structural') {
+      throw new Error(`claim_gate_rejected:phrase_guard_detected_${classification?.fact_class || 'unknown'}:${criterion.criterion}`);
+    }
+  }
+}
+
+async function finalCriterionClaims(sql, review, decision, overrides) {
+  if (decision === 'secondary_correct') {
+    const rows = await sql`
+      SELECT criterion, proposed_verdict AS verdict, rationale
+      FROM public.secondary_criterion_reviews
+      WHERE secondary_review_id=${review.id}
+      ORDER BY criterion
+    `;
+    return applyOverrides(rows, null);
+  }
+
+  const rows = await sql`
+    SELECT criterion, verdict, rationale
+    FROM public.criterion_reviews
+    WHERE company_id=${review.company_id}
+    ORDER BY criterion
+  `;
+  return applyOverrides(rows, decision === 'custom' ? overrides : null);
 }
 
 async function applyCanonicalDecision(sql, review, decision, finalState, overrides) {
@@ -227,71 +304,45 @@ async function applyCanonicalDecision(sql, review, decision, finalState, overrid
   const condition = finalState === 'Pending'
     ? (review.key_issue || review.what_first_pass_should_do_next_time || 'Pending human adjudication condition')
     : null;
+  const sourceReference = `secondary_review:${review.id}:${decision}`;
+  const criteria = await finalCriterionClaims(sql, review, decision, overrides);
 
-  await sql`
-    UPDATE public.companies
-    SET public_state=${finalState},
-        publishable=${finalState !== 'Excluded'},
-        what_it_needs_to_qualify=${condition},
-        methodology_version=${methodologyVersion},
-        updated_at=now()
-    WHERE id=${review.company_id}
-  `;
+  if (criteria.length === 0) {
+    throw new Error('claim_gate_rejected:no_criterion_claims:unknown');
+  }
+  await assertStructuralClaims(sql, criteria);
 
-  if (decision === 'secondary_correct') {
-    const criteria = await sql`
-      SELECT criterion,proposed_verdict,rationale
-      FROM public.secondary_criterion_reviews
-      WHERE secondary_review_id=${review.id}
-      ORDER BY criterion
-    `;
-    for (const criterion of criteria) {
-      await sql`
-        INSERT INTO public.criterion_reviews(company_id,criterion,verdict,rationale,reviewed_at,methodology_version)
-        VALUES(${review.company_id},${criterion.criterion},${criterion.proposed_verdict},${criterion.rationale},now(),${methodologyVersion})
-        ON CONFLICT(company_id,criterion) DO UPDATE SET
-          verdict=excluded.verdict,
-          rationale=excluded.rationale,
-          reviewed_at=excluded.reviewed_at,
-          methodology_version=excluded.methodology_version
-      `;
-    }
-    return;
+  for (const criterion of criteria) {
+    await applyClassifiedClaim(sql, {
+      companyId: review.company_id,
+      factClass: 'structural',
+      claimText: criterion.rationale,
+      sourceReference,
+      criterion: criterion.criterion,
+      verdict: criterion.verdict,
+      payload: { methodology_version: methodologyVersion },
+    });
   }
 
-  if (decision === 'primary_correct') {
-    // Human endorsement of the existing primary decision is itself a human decision.
-    // Stamp the current criterion rows without altering verdicts or rationales.
-    await stampExistingCriteria(sql, review.company_id, methodologyVersion);
-    return;
-  }
+  await applyClassifiedClaim(sql, {
+    companyId: review.company_id,
+    factClass: 'readiness',
+    claimText: condition || 'Human adjudication cleared the readiness condition.',
+    sourceReference,
+    payload: { clear: finalState !== 'Pending' },
+  });
 
-  if (decision === 'custom') {
-    // A custom adjudication with no C1-C8 overrides still endorses the existing
-    // criterion set. Stamp all current rows first, then apply any explicit overrides.
-    await stampExistingCriteria(sql, review.company_id, methodologyVersion);
-
-    if (overrides && typeof overrides === 'object') {
-      for (const [key, value] of Object.entries(overrides)) {
-        const criterionNumber = Number(key);
-        if (!Number.isInteger(criterionNumber) || criterionNumber < 1 || criterionNumber > 8) continue;
-        const verdict = String(value?.verdict || value || '').toUpperCase();
-        if (!['PASS','FAIL','UNCLEAR'].includes(verdict)) continue;
-        const rationale = typeof value === 'object' && value.rationale
-          ? String(value.rationale)
-          : 'Human adjudication override';
-        await sql`
-          INSERT INTO public.criterion_reviews(company_id,criterion,verdict,rationale,reviewed_at,methodology_version)
-          VALUES(${review.company_id},${criterionNumber},${verdict},${rationale},now(),${methodologyVersion})
-          ON CONFLICT(company_id,criterion) DO UPDATE SET
-            verdict=excluded.verdict,
-            rationale=excluded.rationale,
-            reviewed_at=excluded.reviewed_at,
-            methodology_version=excluded.methodology_version
-        `;
-      }
-    }
-  }
+  await applyClassifiedClaim(sql, {
+    companyId: review.company_id,
+    factClass: 'structural',
+    claimText: `Human adjudication set the canonical state to ${finalState}.`,
+    sourceReference,
+    payload: {
+      target: 'canonical_decision',
+      public_state: finalState,
+      methodology_version: methodologyVersion,
+    },
+  });
 }
 
 async function saveFeedback(req, res, id) {
@@ -323,6 +374,8 @@ async function saveFeedback(req, res, id) {
   const overridesObj = payload.final_criterion_overrides || {};
   const overrides = JSON.stringify(overridesObj);
 
+  await applyCanonicalDecision(sql, review, payload.decision, finalState, overridesObj);
+
   const [saved] = await sql`
     INSERT INTO public.review_feedback(
       company_id,secondary_review_id,decision,final_state,final_criterion_overrides,
@@ -344,7 +397,6 @@ async function saveFeedback(req, res, id) {
     RETURNING *
   `;
 
-  await applyCanonicalDecision(sql, review, payload.decision, finalState, overridesObj);
   await sql`
     UPDATE public.secondary_company_reviews
     SET review_status='adjudicated', adjudicated_at=now(), adjudication_note=${note}
@@ -370,9 +422,11 @@ export async function handleReviewApi(req, res, path) {
     json(res, 404, { error: 'not_found' });
   } catch (error) {
     console.error(error);
-    json(res, 502, {
-      error: 'review_database_unavailable',
-      detail: error instanceof Error ? error.message : String(error),
+    const detail = error instanceof Error ? error.message : String(error);
+    const gateRejected = detail.startsWith('claim_gate_rejected:');
+    json(res, gateRejected ? 409 : 502, {
+      error: gateRejected ? 'claim_gate_rejected' : 'review_database_unavailable',
+      detail,
     });
   }
 }
