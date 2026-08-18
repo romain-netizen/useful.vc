@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node scripts/hcvc_probe.mjs && node server.js",
-    "check": "node --check directory-api.js && node --check server.js && node --check worker.js && node --check public/app.js",
+    "check": "node --check directory-api.js && node --check server.js && node --check worker.js && node --check public/app.js && node --check review-server.fixed.js && node --check review-server.js && node --check review-app-server.js && node --check api/healthz.js && node --check api/review.js && node --check scripts/verify-review-deployment.mjs && node scripts/check-review-deployment-source.mjs && node scripts/check-operations-source.mjs && node scripts/check-prompt-doctrine.mjs",
+    "verify:review": "node scripts/verify-review-deployment.mjs",
     "dev:cloudflare": "wrangler dev",
     "deploy:cloudflare": "wrangler deploy",
     "deploy:cloudflare:dry-run": "wrangler deploy --dry-run --outdir dist"

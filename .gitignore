@@ -4,6 +4,7 @@ dist/
 .dev.vars*
 .env
 .env.local
+.vercel/
+.tmp-vercel-review-*/
 npm-debug.log*
 .DS_Store
-
