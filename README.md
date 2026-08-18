@@ -5,7 +5,7 @@ Public, evidence-led directory backed directly by Neon Postgres.
 ## Architecture
 
 - Cloudflare Workers is the production runtime. Cloudflare Static Assets serves the browser application, while `worker.js` serves the Neon-backed JSON API.
-- `directory-api.js` contains the shared, runtime-neutral API so the temporary Railway rollback service and Cloudflare return the same data.
+- `directory-api.js` contains the shared, runtime-neutral API used by the local preview server and the Cloudflare Worker.
 - `GET /api/companies` reads publishable company rows from `public.public_companies` and merges every recorded investor relationship from `company_investors` and real fund-source relationship from `company_vc_sources`.
 - `GET /api/assets` exposes clinical assets and drug rows separately—including pathology-specific diagnostics and invasive interventions—without mixing them into company pages or company screening statistics.
 - The company API also reports the full screening funnel from Neon: companies with all eight criteria reviewed, plus Main and Pending counts and percentages against that denominator.
@@ -13,7 +13,7 @@ Public, evidence-led directory backed directly by Neon Postgres.
 - `/countries` and `/investors` provide public indexes and detail pages without duplicating business data in the application.
 - `GET /healthz` verifies that the runtime can reach Neon.
 - The browser never receives database credentials and has no write path.
-- Railway remains a temporary rollback target during the Cloudflare cutover.
+- GitHub, Neon, Cloudflare Workers and the protected Vercel review project are the complete production toolchain. Railway is not used.
 
 ## Public company content contract
 
@@ -37,25 +37,20 @@ For the Cloudflare runtime, create an uncommitted `.dev.vars` file containing `D
 
 - `wrangler.jsonc` deploys `public/` as static assets and sends only `/api/*` and `/healthz` through the Worker first.
 - `DATABASE_URL` must be configured as a Cloudflare secret, never as a plaintext Wrangler variable.
-- Connect the GitHub repository in Workers Builds to deploy `main` automatically.
+- Connect this GitHub repository in Workers Builds to deploy `main` automatically. Until that persistent connection is confirmed, production remains on the recorded known-good Worker version.
 - Direct country and investor URLs use the static asset single-page application fallback.
 - The private secondary-review application remains isolated in the protected Vercel project `useful-vc-review-ui-v2` and is excluded from the public Worker routes.
 - `npm run deploy:cloudflare:dry-run` validates and bundles the exact Worker payload without publishing it.
-
-## Railway
-
-The committed `railway.toml` defines the start command, database-aware health check, and restart policy. Configure only:
-
-- `DATABASE_URL`: the pooled Neon connection string.
-- `NODE_ENV=production`.
-
-Railway supplies `PORT` automatically.
 
 ## Private review deployment
 
 The canonical private review application is built from this same Git repository by Vercel project `useful-vc-review-ui-v2`. Its serverless entrypoints, routing, security headers, health check and source-verification workflow are versioned here; only encrypted credentials and Vercel Deployment Protection remain outside Git.
 
 See `docs/review-deployment.md` for the source contract, one-time secret setup and release verification. Phase 2 remains frozen until the Git-built writer passes a controlled throwaway adjudication against Neon.
+
+## Operations
+
+`deployment/services.json` is the machine-readable inventory of the only four external systems in use. `docs/operations.md` defines the no-prompt absence policy, secret boundaries, deployment paths and known-good rollback identifiers.
 
 ## Data safety
 

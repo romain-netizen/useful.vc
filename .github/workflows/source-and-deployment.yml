@@ -1,4 +1,4 @@
-name: Review deployment source
+name: Source and deployment checks
 
 on:
   pull_request:
@@ -19,3 +19,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run deploy:cloudflare:dry-run

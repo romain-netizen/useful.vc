@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "sourceOfTruth": {
+    "provider": "github",
+    "repository": "romain-netizen/useful.vc",
+    "productionBranch": "main",
+    "pullRequestBranch": "agent/phase1-classified-write-gate"
+  },
+  "services": {
+    "github": {
+      "role": "source, review and CI",
+      "repository": "romain-netizen/useful.vc",
+      "configuration": [".github/workflows"]
+    },
+    "neon": {
+      "role": "sole production database",
+      "organizationId": "org-divine-hall-65518646",
+      "projectName": "Useful Companies",
+      "projectId": "aged-unit-27578806",
+      "database": "neondb",
+      "connectionMode": "pooled",
+      "configuration": ["migrations"]
+    },
+    "cloudflare": {
+      "role": "public website runtime",
+      "accountId": "b136675c4efd8395c0d05ac14e981055",
+      "workerName": "useful-vc",
+      "configuration": ["wrangler.jsonc", "worker.js", "public"],
+      "requiredSecrets": ["DATABASE_URL"],
+      "knownGoodProductionVersion": "c1b65cab-1fdc-486e-a3c3-4ba258385988",
+      "gitDeployment": {
+        "provider": "cloudflare_workers_builds",
+        "repository": "romain-netizen/useful.vc",
+        "branch": "main",
+        "status": "awaiting_owner_confirmation"
+      }
+    },
+    "vercel": {
+      "role": "protected private review runtime",
+      "teamId": "team_oWJHhFiDDH4S9ZyDYkJhDwGb",
+      "projectName": "useful-vc-review-ui-v2",
+      "projectId": "prj_SqcOBZ59m75ty5RVqMwsiFOXB4BQ",
+      "configuration": ["vercel.json", "deployment/review-vercel.json", "api", "public/review.html", "public/review.js", "public/review.css"],
+      "requiredSecrets": ["DATABASE_URL", "REVIEW_USER", "REVIEW_PASSWORD"],
+      "gitDeployment": {
+        "provider": "vercel_git",
+        "repository": "romain-netizen/useful.vc",
+        "branch": "main",
+        "status": "connected"
+      },
+      "deploymentProtection": "enabled"
+    }
+  },
+  "excludedServices": ["railway", "harmonic"],
+  "absencePolicy": {
+    "interactiveAuthentication": "never_prompt",
+    "onExpiredConnection": "continue_repository_work_and_record_blocker",
+    "productionPromotion": "only_after_existing_acceptance_checks",
+    "phase2": "frozen_until_controlled_adjudication_passes"
+  }
+}
