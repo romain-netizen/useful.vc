@@ -52,6 +52,8 @@ See `docs/review-deployment.md` for the source contract, one-time secret setup a
 
 `deployment/services.json` is the machine-readable inventory of the only four external systems in use. `docs/operations.md` defines the no-prompt absence policy, secret boundaries, deployment paths and known-good rollback identifiers.
 
+The canonical classification methodology is versioned under `prompts/`. The selectivity doctrine is duplicated intentionally in the classifier and automation prompts, and CI rejects any divergence between the two copies.
+
 ## Data safety
 
 The public directory runtime executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data. The separate protected review runtime has an intentional adjudication write path governed by the classified database gate described below.

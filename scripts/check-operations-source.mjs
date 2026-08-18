@@ -11,6 +11,13 @@ if (JSON.stringify(actualServices) !== JSON.stringify(expectedServices)) {
 if (manifest.sourceOfTruth?.repository !== 'romain-netizen/useful.vc') {
   throw new Error('GitHub is not recorded as the canonical repository.');
 }
+const expectedMethodology = [
+  'prompts/02_classifier_system_prompt.md',
+  'prompts/06_french_vc_coverage_automation_prompt.md',
+];
+if (JSON.stringify(manifest.methodology) !== JSON.stringify(expectedMethodology)) {
+  throw new Error('Canonical methodology prompt paths have drifted.');
+}
 if (manifest.services.cloudflare?.workerName !== 'useful-vc') {
   throw new Error('Cloudflare target does not match wrangler.jsonc.');
 }

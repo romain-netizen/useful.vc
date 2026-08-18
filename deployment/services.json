@@ -6,6 +6,10 @@
     "productionBranch": "main",
     "pullRequestBranch": "agent/phase1-classified-write-gate"
   },
+  "methodology": [
+    "prompts/02_classifier_system_prompt.md",
+    "prompts/06_french_vc_coverage_automation_prompt.md"
+  ],
   "services": {
     "github": {
       "role": "source, review and CI",
@@ -32,7 +36,7 @@
         "provider": "cloudflare_workers_builds",
         "repository": "romain-netizen/useful.vc",
         "branch": "main",
-        "status": "awaiting_owner_confirmation"
+        "status": "owner_confirmed_github_web_authentication_required"
       }
     },
     "vercel": {
