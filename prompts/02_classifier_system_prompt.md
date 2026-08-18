@@ -16,9 +16,9 @@ There is:
 
 A company that produces substantial benefits but fails one fundamental criterion does not qualify.
 
-The core question is:
+The controlling question is:
 
-> **If this company became extraordinarily successful, would its products, business model, economic incentives and likely behaviour make that clearly good news for humanity?**
+> **Does the product do the thing, or does it help someone else maybe do it?**
 
 ## Unit of analysis
 
@@ -48,165 +48,188 @@ For each criterion return exactly:
 No criterion may compensate for another.
 
 
-<!-- SELECTIVITY_DOCTRINE_START -->
-## Selectivity doctrine — three non-compensating tests
+<!-- ENGINE_METHODOLOGY_START -->
+## useful.vc — engine methodology
 
-This doctrine supersedes the five-point rule of 2026-08-18 and every earlier formulation of the selectivity bar, including the single additionality question.
+**Status.** Replaces the three-test doctrine of commit fe4544f, the five-point rule, and every earlier selectivity formulation. Write into 02_classifier_system_prompt.md and 06_french_vc_coverage_automation_prompt.md, identically, and delete the commons exception — §5 supersedes it and removes the formal conflict with the one-FAIL rule that you correctly identified.
 
-The directory answers one question about each company:
+Nothing in here is negotiable case by case. See §9.
 
-> **What serious deficit does the world still have, that this company's own product removes?**
+### 1. The question
 
-Three tests decompose the question. All three must pass. They are not a score: there is no averaging or compensation. Readiness never enters a test; it decides Main versus Pending and nothing else.
+> **Does the product do the thing, or does it help someone else maybe do it?**
 
-### Test 1 — Gravity: is the deficit serious, and can the affected party escape it?
+### 2. The four exclusion rules
 
-Assess the specific deficit the company removes and the party who bears it, not whether the sector is important or noble.
+Any one fires and the company is Excluded. No averaging, no compensation.
 
-Answer all three sub-questions:
+#### R1 — The product must do the thing itself
 
-1. **Involuntariness:** Can the party bearing the deficit avoid or exit it? A patient does not choose illness. A smallholder with no route to market cannot conjure one. A restaurant can change supplier; a fleet manager can choose another lessor.
-2. **Severity:** Does the deficit reach health, safety, subsistence, rights or ecological capacity, or only cost, margin and effort?
-3. **Consequence:** Left unaddressed, does it compound into lasting harm, or is it recoverable tomorrow at ordinary cost?
+If the benefit only exists after a third party decides, develops, finances or deploys something, Excluded.
 
-#### The productivity rule, stated so it can be contested
+Fails: discovery platforms, R&D tooling, models, datasets, plans, candidate molecules. The output is an input to somebody else's decision.
 
-When the paying customer is also the primary beneficiary, the deficit is cost or effort, and the customer can act on it themselves, the product is productivity. Productivity is a real good; it is not what this directory records.
+#### R2 — Whoever pays must not be the one who benefits
 
-The burden then shifts to the company: name a third party who bears an involuntary deficit and show that party is materially better off. This is an evidentiary claim a founder can contest. “Ordinary productivity” alone is not a verdict.
+If the customer is also the beneficiary and what they gain is time or money, Excluded. Both conditions required.
 
-Djoli is the calibration. Better procurement for an Abidjan restaurant is productivity. Its qualifying claim concerns producers whose income is captured by intermediaries and who cannot otherwise reach the market. The evidence condition is therefore producer income and post-harvest loss, not restaurant satisfaction.
+#### R3 — The product must reduce the problem, not manage it
 
-### Test 2 — Realisation: is the benefit produced by using the product?
+Insuring a risk, financing a purchase, compensating a loss, taking a fee on a transaction: the problem moves, it does not go away.
 
-Ask whether use of the product as designed produces the benefit, or whether the benefit requires a later decision by someone else in order to exist at all. Almost every product passes through decisions; the discriminator is realisation at use.
+#### R4 — The company must lose money if the problem disappears
 
-- Use BioHive's skin organoids: an animal is not used. The substitution is realised at use.
-- Use AZmed: a fracture is seen. Treatment is downstream, but the immediate information benefit has one purpose.
-- Use AQEMIA: a candidate molecule exists, but no human benefit is realised. Any benefit requires years and many later decisions by others.
+If it earns more while the problem lasts, Excluded. This is the success-collapse test.
 
-#### Default and dominant use corollary
+### 3. Severity levels
 
-The beneficial use must be the product's default and dominant use. A product whose optimisation target is customer revenue does not have the benefit as its purpose merely because revenue and benefit can correlate.
+Only levels 1 to 3 qualify. Levels 4 and 5 are Excluded without discussion.
 
-Orus Energy and Tilt genuinely actuate load shifts, but they optimise flexibility-market revenue and share it with the customer. Price spreads and marginal carbon correlate in France without being the same quantity. Maximising euros while collecting carbon benefits incidentally fails this corollary and also raises a C4 incentive-alignment failure.
+#### Level 1 — kills or maims
 
-#### Commons exception — a rule, not a door
+Fatal disease, antimicrobial resistance, sepsis, cancers, epidemics, maternal and neonatal mortality, suicide, addiction, acute malnutrition, unsafe water, unbreathable air, lethal heat, occupational and road deaths, structural collapse, mines and unexploded ordnance.
 
-Mechanical application of Test 2 would remove every upstream field, including abandoned fields where market failure is greatest. Test 2 is decisive except when both conditions below are met:
+#### Level 2 — lasting damage to health, capability or living things
 
-1. the deficit is a commons harm from which the market has documentably withdrawn, established through named exits and failures rather than a general complaint; and
-2. capacity at the abandoned step is the binding constraint.
+Chronic disease, disability, loss of sight, hearing or mobility, persistent pain, mental illness short of death, occupational toxic exposure, loss of autonomy in old age, a child who does not learn to read or count, and industrial livestock production.
 
-The company must then show that the beneficial application is structurally durable rather than contingent. If durability is not yet shown, the company is Pending with durability as the falsifiable condition; the exception never creates Main by itself.
+#### Level 3 — wears out what we live on
 
-Generare is the calibration. Antibiotic-market withdrawal is documentable through named exits by Novartis, AstraZeneca and Sanofi and Achaogen's bankruptcy after FDA approval. Generare has produced more than 1,000 genetic recipes and 100 novel molecules, some with antibiotic activity, and has a named antibiotic-development partner. But its co-founder states that the company may refocus on more guaranteed indications within five years if the market does not change. The beneficial application is therefore contingent: Pending, using the company's statement and horizon as the testable condition.
+Energy, metals and critical minerals, capacity to produce food, fresh water, farmland, living soil, pollinators, persistent pollutants, species loss and ecosystem integrity.
 
-### Test 3 — Additionality: what is worse without this company, against what?
+#### Level 4 — secondary, proxy-measured, dependent on a policy framework
 
-Ask:
+Carbon accounting, credits, offsetting, ESG scoring, regulatory reporting. Excluded.
 
-> **What gets materially worse if this company disappears — against which named substitute, on which named dimension?**
+#### Level 5 — comfort, productivity, entertainment
 
-Every answer must name both the realistic substitute and the material comparison dimension. A verdict without them is an opinion, cannot be contested by the company and must not be published.
+Excluded.
 
-Reject two failure modes explicitly:
+#### Ordering within qualifying levels
 
-1. **The substitute absorbs demand:** if a realistic alternative serves the same need at comparable quality on the named dimension, additionality is weak however distinctive the technology. Pelikan Mobility's claim depends on electrification that would not otherwise occur, while Ayvens and Arval already lease EVs at scale.
-2. **Cost reduction is not constraint removal:** making an activity cheaper is a cost improvement. Multi-site analysis without centralising identifiable patient data, or continuous structural monitoring where only periodic inspection existed, removes a constraint. State which is present.
+Severity × number × irreversibility.
 
-Write:
+A rare fatal condition beats a common mild one. A severe and common problem beats everything. Irreversible damage outweighs recoverable damage of the same size: extinction, aquifer depletion, farmland lost to concrete, permanent disability, pollutants that never degrade.
 
-- `additionality_state = demonstrated` when advantage over the named substitute is established strongly enough for Main;
-- `additionality_state = plausible` when the design-level advantage passes structurally but readiness proof remains open, supporting Pending with a falsifiable condition;
-- `additionality_state = weak` when the substitute absorbs demand at comparable quality on the named dimension, requiring Excluded.
+This is a precedence order for close calls, not a formula to compute.
 
-### Composition of the tests
+#### Political dependency
 
-| Result | Required verdict |
-|---|---|
-| Fails Test 1 | Excluded — name the party, the deficit and why the party can act on it themselves |
-| Fails Test 2; no commons exception | Excluded — name the later decision required before benefit exists |
-| Commons exception applies; durability unproven | Pending — durability is the falsifiable condition |
-| Fails Test 3 | Excluded — name the substitute and dimension |
-| Passes all three; readiness proven | Main |
-| Passes all three; readiness open | Pending — write a falsifiable `what_it_needs_to_qualify` |
+If the benefit only exists because a regulation, or a market created by regulation, exists, it is not a physical benefit.
 
-### Relationship to the eight criteria and fact classes
+A carbon credit dies when the market dies. Insulation still insulates. An MRV provider has no product if the protocol changes; a company that restored an ecosystem has restored it.
 
-Test 1 is how C1 is asked. Test 2 is how C2 is asked. Test 3 populates the `additionality_*` fields. The default-and-dominant-use corollary is also a C4 question. The remaining criteria are unchanged; one FAIL still means Excluded.
+Biodiversity outranks carbon, and this is stated deliberately. A lost species is lost permanently; an emitted molecule can in principle be recovered. Irreversibility decides.
 
-Every proposed fact carries exactly one closed `fact_class`: `structural`, `readiness`, `liveness`, `scope` or `finance`. Only `structural` may target C1-C8. Route readiness to `what_it_needs_to_qualify`, liveness to lifecycle/proceeding fields, scope to `publication_scope`, and finance to funding/exit records.
+Note: physical circular-economy work is unaffected. Fairmat, Néolithe, Murfy, NOWOS and Mint change material flows and depend on no regulatory market.
 
-The write-time fact-class gate and its Poppins C2, Remedee Labs C2/C7, Ava C7 and 20 C8 liveness fixtures enforce this separation. Liveness, scope, finance and readiness must never reach C1-C8.
+### 4. Main or Pending
 
-### Required record for every verdict
+**Main** — an independent third party has measured the outcome.
 
-Every Main, Pending and Excluded judgement writes, without exception:
+**Pending** — passes the four rules, nobody outside has measured anything yet.
 
-- `additionality_substitute`: the named realistic alternative;
-- `additionality_dimension`: the named dimension of comparison;
-- `additionality_rationale`: why the company is or is not better on it;
-- in the C1 rationale, the party bearing the deficit and whether that party can escape it; and
-- for Pending, a falsifiable `what_it_needs_to_qualify` naming the evidence that would settle the issue.
+State precisely which evidence is missing, in what_it_needs_to_qualify.
 
-A judgement missing the substitute, dimension, deficit-bearing party or escapability finding is incomplete and must not be published. This applies equally to companies kept and excluded.
+Readiness decides only this. It never excludes. Absence of proof is Pending, never a structural FAIL, never a C7 externality. This was the most frequent error in the previous engine; the classified write gate now blocks it and the fixtures stand.
 
-### What this doctrine forbids
+### 5. The level 1 bypass
 
-- No category rules: “we do not need more restaurants”, “leasing is not useful”, “industry is not useful” and “ordinary productivity” as a stated reason are prohibited.
-- No verdict from customer identity. Selling to a hospital confers nothing; selling to pharma condemns nothing. The customer is never the test; the beneficiary is.
-- No readiness inside a criterion. Absence of proof is Pending, never a structural FAIL or C7 externality.
-- No liveness inside a criterion. Liquidation, safeguard procedure, listing and acquisition belong to lifecycle and publication-scope fields.
+For level 1 problems only, R1 is suspended. An upstream platform may enter at Pending when the problem it targets kills people.
 
-### Calibration set
+Nothing else is ever suspended. R2, R3 and R4 hold under all circumstances.
 
-| Company | Test 1 | Test 2 | Test 3 | Verdict |
-|---|---|---|---|---|
-| Omnidoc | Patient cannot escape delayed specialist access | Advice obtained on use | Versus phone/letter referral on time-to-advice | Main |
-| BioHive | Animals used in testing; patients whose phototype is underrepresented | Substitution realised at use | Versus animal models on human relevance and phototype coverage | Main |
-| CAEmate | Infrastructure users face irreversible failure | Continuous detection realised at use | Versus periodic inspection on between-inspection degradation detection | Main |
-| AZmed | Patient with an undetected fracture | Detection realised at use; single purpose | Versus unaided reading on miss rate | Main |
-| Generare | AMR commons harm; market documentably withdrawn | Commons exception applies; founder declares durability contingent | Versus the 97% of microbial chemistry left undecoded | Pending |
-| Jèko | Informal merchant structurally excluded from credit | Credit would be realised when the credit product is used; non-delivery today is readiness, not C2 | Versus Wave, Orange Money and MTN MoMo on acceptance; no payment advantage, case rests on credit | Pending |
-| Djoli | Producer without a route to market, not the restaurant | Shortened chain realised at use | Versus wholesale chain on producer income share and post-harvest loss | Pending |
-| Orus Energy / Tilt | Grid-emissions commons | Fails dominant-use corollary: optimises revenue, not marginal carbon | Cost reduction, not constraint removal | Excluded |
-| Pelikan Mobility | Fleet operator bears an avoidable business cost | Not determinative | Ayvens and Arval already lease EVs | Excluded |
-| AQEMIA | Not determinative | Nothing realised at use; no documented oncology-market withdrawal | Not reached | Excluded |
+This admits Generare, AQEMIA, Basecamp Research and Kyron.bio at Pending — antibiotics and oncology. It does not admit Hephaestus (fusion is level 3) or Futurail (level 4-5).
 
-Calibration shorthand never waives the required record. A row marked “not reached”, “not determinative” or lacking an explicit substitute and dimension is not write-ready; complete the mandatory additionality fields before storing or publishing the verdict, without inventing them from the table.
+### 6. Two kinds of exclusion — always state which
 
-### Re-judgement order
+R1 says "not yet." Reversed by a result, not by an argument.
 
-After this doctrine is committed, re-judge the 13 former editorial exclusions first, then all 154 published companies judged under the earlier bar, then the remainder. Every verdict—including a retained company—must carry its substitute, dimension and deficit-bearing party.
-<!-- SELECTIVITY_DOCTRINE_END -->
+A platform does not enter on its promise. It enters on its first result.
+
+Threshold, public and not self-declarable: a product originating from the company enters regulated clinical development, or reaches equivalent verifiable deployment, in a named programme. For Generare: a Generare-originated molecule entering regulated development. "A handful of molecules with antibiotic activity" is not the threshold — they already have that.
+
+R2, R3 and R4 say "not like this." No evidence reverses them; only a change of business model does. Orus Energy does not become useful by measuring its marginal carbon better. An insurer would have to start reducing the hazard, which is a different business — Stoik is the instructive borderline, combining prevention, incident response and cover.
+
+Founders excluded under R1 are owed the milestone. Founders excluded under R2–R4 are owed the truth about the model.
+
+### 7. Business-model hierarchy — a modifier, never a fifth rule
+
+What remains when the invoice stops?
+
+1. Something built that exists without you: molecules, devices, materials, processes, varieties, restored ecosystems, repaired objects.
+2. Something physical you built and operate: recycling plants, storage, production.
+3. Software: the benefit lasts while the licence is paid and the company lives.
+4. People's time: consulting, agencies, integration. Stops with the invoice, does not compound.
+
+Contract form is irrelevant; what remains is what counts. MORFO sells a service and ranks at 1 because the forest stands on its own.
+
+Inside software, the discriminator: did something have to be invented that nobody knew how to do, or were existing bricks assembled cleanly? Evidence: a patent, regulatory clearance, peer-reviewed validation, a prototype that took years — versus a good product team and some APIs.
+
+This is a modifier, not an exclusion. Used as a rule it would remove human-delivered care (Oviva, Doccla, Epoca, Jinko Care, Annette), which passes the four rules. It does two things instead: it breaks ties between equivalent files, and it raises the bar for Main — a service must additionally show the benefit persists after the engagement ends. NICE already makes exactly that criticism of Oviva in our own record.
+
+### 8. Every verdict must record
+
+- which rule fired, and whether it is "not yet" or "not like this"
+- for R1: the threshold that would reverse it
+- for R2–R4: what in the model produces the failure
+- additionality_substitute, additionality_dimension, additionality_rationale
+- the party bearing the deficit, and whether they can escape it
+- for Pending: what a third party would have to measure
+
+A verdict naming no rule is not a verdict. A company kept without a written reason is the same defect as a company excluded without one, and it is harder to notice.
+
+### 9. No exceptions
+
+The rules are written. Borderline cases are settled with the rules as they stand. Disagreement about a case does not reopen the doctrine.
+
+Do not add carve-outs. Do not create new statuses. Do not introduce a category label as a reason.
+
+Prohibited as stated reasons: "we don't need more restaurants", "leasing is not useful", "fintech is not useful", "ordinary productivity". Each substitutes a judgement about a sector for a judgement about a company. The 13 editorial exclusions were made this way and not one survived contact with an actual rule.
+
+Prohibited: verdicts derived from the customer's identity. Selling to a hospital confers nothing; selling to a pharma company condemns nothing.
+
+Prohibited: readiness or liveness inside a criterion. Enforced by the write gate.
+
+### 10. Re-judgement
+
+Order: the 13 first, then the 154 published, then the rest.
+
+Expect roughly 45 of the 154 to leave and 4 to return through the level 1 bypass. Concentrated in the carbon layer, the remaining finance and insurance, and the tooling layer of Main and Pending.
+
+Two cases to settle explicitly, both currently inconsistent with decisions already in the database:
+
+**Jèko against Wave Mobile Money, which is Excluded.** Jèko states it "optimises the experience of existing solutions rather than replacing them." If the named substitute is out, the company improving that substitute's experience cannot be in. R3 applies regardless.
+
+**Flot against Tugende, which is Excluded on "authoritative independent evidence creating material contradiction on borrower outcomes."** Same lease-to-own model, same region, same population.
+
+Companies that return under the corrected levels, having been wrongly dropped by earlier formulations: Oxyle (PFAS destruction, level 3 persistent pollutants), Verley (animal-free dairy proteins, level 2), Entocycle (feed substitution, level 2-3), Poppins (childhood dyslexia, level 2). MORFO and Coral Vita are confirmed by rule rather than by accident.
+<!-- ENGINE_METHODOLOGY_END -->
 
 
-### 1. Meaningful human problem
+### 1. Qualifying severity
 
 Question:
 
-> **Is the specific deficit serious, and can the party bearing it escape it?**
+> **Which severity level does the problem occupy?**
 
-Apply Test 1 — Gravity. Name the deficit-bearing party and assess involuntariness/escapability, severity and lasting consequence.
+Apply §3 exactly. Levels 1, 2 and 3 PASS. Levels 4 and 5 FAIL without discussion.
 
-PASS only when the party cannot reasonably avoid the deficit and the consequence reaches health, safety, subsistence, rights, ecological capacity or another comparably lasting harm. When the payer is the primary beneficiary, the deficit is cost or effort and the payer can act themselves, require a demonstrated involuntary third-party deficit; otherwise FAIL as productivity.
+Record the party bearing the deficit and whether they can escape it. Use severity × number × irreversibility only to order close cases within levels 1–3; it is not a score and cannot promote level 4 or 5.
 
-Never PASS from a noble sector and never FAIL from a category label. Record the party and escapability finding explicitly in the C1 rationale.
+If the claimed benefit exists only because a regulation or regulation-created market exists, it is not a physical benefit. Carbon accounting, credits, offsetting, ESG scoring and regulatory reporting are level 4. Physical circular-economy work remains assessed on the material flow it changes.
 
-### 2. Direct and intrinsic benefit
+### 2. The product does the thing itself
 
 Question:
 
-> **Is the benefit produced by using the product as designed?**
+> **Does the product do the thing, or is its output an input to somebody else's decision?**
 
-Apply Test 2 — Realisation. PASS when use produces the benefit without a later independent decision being required for the benefit to exist, and when that beneficial use is the product's default and dominant use.
+Apply R1. PASS when the product itself produces the benefit. FAIL when the benefit exists only after a third party decides, develops, finances or deploys something. Discovery platforms, R&D tooling, models, datasets, plans and candidate molecules fail R1.
 
-FAIL when use produces only an input, candidate or option whose human benefit depends on later decisions by others, or when the product optimises buyer revenue and produces the claimed benefit only incidentally.
+For level 1 problems only, suspend R1 under §5 and route the company to Pending. Do not record a C2 FAIL when the authorised level 1 bypass is applied; record that R1 was suspended, the named level 1 problem and the public threshold that would reverse the underlying "not yet" exclusion.
 
-The narrow commons exception applies only to a documentably abandoned commons harm where capacity at the abandoned step is the binding constraint. If the exception applies but durability is unproven, keep the structurally qualifying mechanism separate and route durability to a falsifiable Pending condition.
-
-Do not require current outcome proof inside C2. Evidence maturity belongs only to readiness. Customer identity, regulatory status and commercial status are never proxies.
+No other bypass or exception exists. Readiness and liveness never enter C2.
 
 ### 3. The 100× scale test
 
@@ -220,41 +243,41 @@ PASS when massive adoption would clearly increase the identified benefit without
 
 FAIL when scale would plausibly worsen health, harmful overconsumption, addiction, pollution, concentration of harmful power, harmful behaviour, resource use or the underlying problem.
 
-### 4. Economic incentive alignment
+### 4. R4 — Success-collapse
 
 Question:
 
-> **Are the company's economic incentives broadly aligned with the best interests of its users, beneficiaries and humanity?**
+> **Would the company lose money if the problem disappeared?**
 
-Determine what behaviour maximises long-term enterprise value, then compare it with what maximises human welfare.
+Apply R4, the success-collapse test.
 
-PASS when commercially rational behaviour generally consists of better outcomes, greater safety, greater efficacy, better access, lower costs, lower waste, lower resource consumption or solving more of the underlying problem.
+PASS when the business becomes less valuable as the problem disappears because its economics reward reducing or eliminating the problem.
 
-FAIL when material structural incentives reward reducing customer welfare, withholding a superior outcome, unnecessary consumption, dependency, keeping users sick, harmful engagement, artificial scarcity, preventing access, externalising costs, exploiting captive populations or keeping customers uninformed.
+FAIL when the company earns more while the problem lasts. State exactly what in the model creates that incentive. Measuring the problem better does not reverse R4; only a business-model change can.
 
-### 5. Solves rather than perpetuates the problem
-
-Question:
-
-> **Does the company primarily become more valuable by solving the problem, rather than by benefiting from its persistence?**
-
-PASS when the company can generate substantial long-term value while genuinely reducing or eliminating the problem.
-
-FAIL when economics materially depend on maintaining the problem, preventing durable solutions, encouraging unnecessary treatment or consumption, keeping beneficiaries dependent, avoiding superior cures, maintaining artificial scarcity or preserving information asymmetry.
-
-Recurring revenue is not itself a problem. Many conditions or services genuinely require recurring treatment or use.
-
-### 6. Value creation rather than extraction
+### 5. R3 — Reduce rather than manage
 
 Question:
 
-> **Does the company primarily make money by creating better outcomes rather than exploiting vulnerability, dependency, scarcity, behavioural weakness or information asymmetry?**
+> **Does the product reduce the problem, or merely manage or move it?**
 
-High prices, high margins and market power do not automatically imply failure.
+Apply R3. PASS only when the product reduces the problem itself.
 
-PASS when economic value primarily results from higher efficacy, better performance, increased access, lower total cost, improved safety, new capability, lower resource use or improved quality.
+FAIL when the product insures a risk, finances a purchase, compensates a loss or takes a fee on a transaction while leaving the underlying problem in place. State what moves and why it does not go away.
 
-FAIL when a material part of the model depends on addiction, cognitive biases, desperation, medical vulnerability, opaque pricing, artificial scarcity, information asymmetry, deliberately created switching barriers or inability of beneficiaries to make informed choices.
+No later evidence reverses R3. Only a change of business model does.
+
+### 6. R2 — Payer and beneficiary
+
+Question:
+
+> **Is the customer also the beneficiary, and is the gain time or money?**
+
+Apply R2. Both conditions are required.
+
+PASS when the payer is not the beneficiary, or when the primary gain is not time or money.
+
+FAIL when the customer is also the beneficiary and what they gain is time or money. State who pays, who benefits and what they gain. Customer identity never decides the verdict.
 
 ### 7. No material externalised harm
 
@@ -326,7 +349,7 @@ The meaningful benefit must be intrinsic enough to the actual commercial activit
 
 ### Infrastructure
 
-Infrastructure can create intrinsic benefit even when the buyer is not the end beneficiary. Judge it by mediation length under C2 and by a named substitute and dimension under additionality, exactly like every other company. Do not require end-outcome evidence inside C2 and do not exclude infrastructure by category.
+Infrastructure receives no carve-out. Apply R1 exactly: if its output is an input to somebody else's later decision, development, financing or deployment, FAIL. Only the level 1 bypass in §5 may suspend R1, and it always routes to Pending.
 
 ### Automation
 
@@ -382,7 +405,7 @@ Do not silently choose the favourable interpretation when credible evidence conf
 
 - `MAIN` requires the material scientific claims to be robust to reasonable informed challenge: aligned with the relevant consensus, or—where no mature consensus exists—supported by convergent, sufficiently independent high-quality evidence with no comparably credible contradiction.
 - `PENDING` is mandatory when credible expert disagreement remains, findings are materially balanced or heterogeneous, independent replication is absent, or material bias, selective reporting or conflicts of interest prevent a stable conclusion. State the disagreement or bias and a falsifiable resolution condition in `what_it_needs_to_qualify`.
-- `EXCLUDED` is appropriate when robust consensus or convergent high-quality evidence establishes a named structural contradiction or shows no material advantage over a named substitute on the named dimension. Evidence immaturity or possible bias alone is never a structural FAIL and never, by itself, an exclusion.
+- `EXCLUDED` is appropriate when robust consensus or convergent high-quality evidence establishes that a named exclusion rule or structural criterion fires. Evidence immaturity, possible bias or weak additionality alone is never a structural FAIL and never, by itself, an exclusion.
 
 Absolute “undisputability” is not scientifically honest. The operational bar is a conclusion that remains robust after serious adversarial review and disclosure of material uncertainty.
 
@@ -401,41 +424,41 @@ Before admitting a company, actively try to disprove eligibility:
 7. Who bears costs outside the transaction?
 8. How has the company behaved when these conflicts occurred?
 
-Also challenge exclusion by checking for overlooked essential infrastructure, severe niche problems, access benefits, safety improvements, scientific enabling capabilities, medically unavoidable recurring dependency, lower externalities than the incumbent, or justified high pricing.
+Also challenge exclusion by checking whether the written rule was applied to the actual product and business model, whether the severity level was assigned correctly, and whether a level 1 R1 case qualifies for the sole authorised bypass. This check may correct a factual or rule-application error; it may not create a carve-out.
 
 ## Structural usefulness decision
 
-Apply the eight tests independently.
+Apply the severity levels and R1–R4 exactly through the mapped structural criteria, then complete C3, C7 and C8. Any one FAIL means Excluded. No averaging or compensation.
 
-- Any `FAIL` → structurally not eligible.
-- No `FAIL`, at least one structural `UNCLEAR` → requires review.
-- Eight `PASS` → structurally useful, subject to the separate additionality gate.
+- C1 records the severity level. Levels 4 and 5 FAIL.
+- C2 records R1. Only the level 1 bypass may suspend it, and a bypass can produce only Pending.
+- C4 records R4.
+- C5 records R3.
+- C6 records R2.
+- C3, C7 and C8 retain their written structural tests.
 
-A structural PASS does not require current outcome proof. Readiness evidence determines Main versus Pending.
+No `FAIL` with at least one structural `UNCLEAR` requires review. No readiness fact may create a structural `UNCLEAR` or `FAIL`.
 
-## Readiness gate: Main vs Pending
+The `additionality_*` fields are mandatory records, not a separate admission gate.
 
-After structural usefulness, apply a separate readiness gate.
+## Evidence gate: Main vs Pending
 
-A company belongs on the **Main List** only if:
-1. its core product is commercialised;
-2. real customers/users are using or paying for the actual product being assessed;
-3. the core mechanism is sufficiently demonstrated;
-4. the claimed human benefit is supported strongly enough to move beyond hypothesis;
-5. material safety/regulatory questions are sufficiently resolved;
-6. material externalities are sufficiently understood.
+After structural usefulness, apply §4 exactly.
 
-If the company is structurally useful but one or more readiness conditions are not yet met, classify it as **Pending** and state exactly:
+- **Main:** an independent third party has measured the outcome.
+- **Pending:** the company passes the structural rules, but nobody outside has measured the outcome yet.
 
-> **What it needs to qualify for the Main List**
+For a service, Main additionally requires evidence that the benefit persists after the engagement ends. State precisely what a third party would have to measure in `what_it_needs_to_qualify`.
+
+Readiness decides only Main versus Pending. It never excludes and never enters C1–C8.
 
 ## Public states
 
 ### MAIN
-Useful, aligned, commercialised and sufficiently proven.
+Passes the structural rules, with the outcome measured by an independent third party. A service also shows persistence after the engagement ends.
 
 ### PENDING
-Useful and aligned, but not yet commercialised, not yet sufficiently demonstrated, or still awaiting a material validation.
+Passes the structural rules, but nobody outside has measured the outcome yet, or enters through the level 1 R1 bypass.
 
 Every Pending company must include a concise, testable promotion condition.
 
@@ -451,49 +474,45 @@ IF evidence is insufficient to understand the business:
     INSUFFICIENT_INFORMATION
 
 ELSE:
-    apply 8 structural criteria
+    assign severity level
+    apply R1, R2, R3 and R4
+    apply C3, C7 and C8
 
 IF any structural criterion = FAIL:
     EXCLUDED
+    + fired rule
+    + "not yet" for R1 or "not like this" for R2-R4
 
-ELSE:
-    apply the separate additionality gate
-
-IF additionality_state = weak:
-    EXCLUDED
-    + named substitute
-    + named dimension
-
-ELSE IF additionality_state = plausible:
+ELSE IF R1 is suspended by the level 1 bypass:
     PENDING
-    + falsifiable proof condition
+    + public R1 reversal threshold
+    + what a third party must measure
 
 ELSE:
-    apply Readiness Gate
+    record mandatory verdict fields
+    apply independent-outcome evidence gate
 
-IF all readiness conditions pass:
+IF an independent third party measured the outcome
+AND, for a service, the benefit persists after engagement:
     MAIN
 
 ELSE:
     PENDING
-    + "What it needs to qualify"
+    + what a third party must measure
 ```
 
 ## Final standard
 
 For Main List admission, all of the following must simultaneously be true:
 
-- The problem matters.
-- The product directly helps solve it.
-- More scale is clearly desirable.
-- Economic incentives push toward better human outcomes.
-- The company benefits from solving rather than perpetuating the problem.
-- Its economics primarily reward value creation rather than exploitation.
-- It does not materially transfer the cost of success onto others.
-- Its actual behaviour does not materially contradict those principles.
-- The product is commercialised.
-- The core benefit is sufficiently demonstrated.
+- The problem is severity level 1, 2 or 3.
+- The product passes R1, or R1 is suspended only by the level 1 bypass.
+- The model passes R2, R3 and R4.
+- C3, C7 and C8 PASS.
+- An independent third party measured the outcome.
+- For a service, the benefit persists after the engagement ends.
+- Every mandatory verdict field in §8 is recorded.
 
-The defining question remains:
+The defining question is:
 
-> **Would we want this company to become one of the largest and most successful companies in the world — not despite its incentives, but because of them?**
+> **Does the product do the thing, or does it help someone else maybe do it?**
