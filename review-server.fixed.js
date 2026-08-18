@@ -216,6 +216,8 @@ function adjudicationMethodology(decision) {
 
 async function applyClassifiedClaim(sql, {
   companyId,
+  feedbackId,
+  adjudicationPath = 'vercel_adjudication',
   factClass,
   claimText,
   sourceReference,
@@ -226,9 +228,10 @@ async function applyClassifiedClaim(sql, {
 }) {
   const [result] = await sql`
     SELECT *
-    FROM public.apply_classified_claim(
+    FROM public.apply_human_adjudication_claim(
       ${companyId},
-      'human_adjudication',
+      ${feedbackId},
+      ${adjudicationPath},
       ${factClass},
       ${claimText},
       ${sourceReference},
@@ -299,13 +302,22 @@ async function finalCriterionClaims(sql, review, decision, overrides) {
   return applyOverrides(rows, decision === 'custom' ? overrides : null);
 }
 
-async function applyCanonicalDecision(sql, review, decision, finalState, overrides) {
+async function applyCanonicalDecision(
+  sql,
+  review,
+  feedbackId,
+  decision,
+  finalState,
+  overrides,
+  preparedCriteria = null,
+) {
   const methodologyVersion = adjudicationMethodology(decision);
   const condition = finalState === 'Pending'
     ? (review.key_issue || review.what_first_pass_should_do_next_time || 'Pending human adjudication condition')
     : null;
   const sourceReference = `secondary_review:${review.id}:${decision}`;
-  const criteria = await finalCriterionClaims(sql, review, decision, overrides);
+  const criteria = preparedCriteria
+    || await finalCriterionClaims(sql, review, decision, overrides);
 
   if (criteria.length === 0) {
     throw new Error('claim_gate_rejected:no_criterion_claims:unknown');
@@ -315,28 +327,34 @@ async function applyCanonicalDecision(sql, review, decision, finalState, overrid
   for (const criterion of criteria) {
     await applyClassifiedClaim(sql, {
       companyId: review.company_id,
+      feedbackId,
       factClass: 'structural',
       claimText: criterion.rationale,
       sourceReference,
       criterion: criterion.criterion,
       verdict: criterion.verdict,
+      secondaryReviewId: review.id,
       payload: { methodology_version: methodologyVersion },
     });
   }
 
   await applyClassifiedClaim(sql, {
     companyId: review.company_id,
+    feedbackId,
     factClass: 'readiness',
     claimText: condition || 'Human adjudication cleared the readiness condition.',
     sourceReference,
+    secondaryReviewId: review.id,
     payload: { clear: finalState !== 'Pending' },
   });
 
   await applyClassifiedClaim(sql, {
     companyId: review.company_id,
+    feedbackId,
     factClass: 'structural',
     claimText: `Human adjudication set the canonical state to ${finalState}.`,
     sourceReference,
+    secondaryReviewId: review.id,
     payload: {
       target: 'canonical_decision',
       public_state: finalState,
@@ -373,8 +391,17 @@ async function saveFeedback(req, res, id) {
   const learn = payload.use_for_learning !== false;
   const overridesObj = payload.final_criterion_overrides || {};
   const overrides = JSON.stringify(overridesObj);
+  const preparedCriteria = await finalCriterionClaims(
+    sql,
+    review,
+    payload.decision,
+    overridesObj,
+  );
 
-  await applyCanonicalDecision(sql, review, payload.decision, finalState, overridesObj);
+  if (preparedCriteria.length === 0) {
+    throw new Error('claim_gate_rejected:no_criterion_claims:unknown');
+  }
+  await assertStructuralClaims(sql, preparedCriteria);
 
   const [saved] = await sql`
     INSERT INTO public.review_feedback(
@@ -396,6 +423,16 @@ async function saveFeedback(req, res, id) {
       created_at=now()
     RETURNING *
   `;
+
+  await applyCanonicalDecision(
+    sql,
+    review,
+    saved.id,
+    payload.decision,
+    finalState,
+    overridesObj,
+    preparedCriteria,
+  );
 
   await sql`
     UPDATE public.secondary_company_reviews

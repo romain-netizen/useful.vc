@@ -66,3 +66,11 @@ The deployed application executes only `SELECT` statements against the public co
 - Automated canonical writes to human-adjudicated company rows are neutralised and also recorded in `qa_monitor.guard_audit`.
 - The private adjudication server preflights every criterion rationale and calls the same stored procedure for criterion, readiness and canonical-state writes.
 
+`migrations/20260818_human_adjudication_provenance.sql` closes the human-marker provenance gap discovered after Phase 1 verification.
+
+- `public.apply_human_adjudication_claim` requires a `review_feedback` row for the same company and review before it delegates to the classified write gate.
+- The feedback decision must agree with the exact methodology stamp, and the application path is recorded as `vercel_adjudication`, `migration`, or `manual`.
+- Companies and criterion rows carry the matching feedback ID and application path. `qa_monitor.v_human_adjudication_orphans` must remain empty.
+- Accepted and rejected stamp attempts are recorded in the append-only `qa_monitor.human_adjudication_audit` table.
+- The 13 fabricated category-exclusion stamps are removed without changing their states, criterion verdicts, or rationales. Recoverable company-level versions come from QA snapshots; uncaptured versions use an explicit unknown-provenance marker.
+
