@@ -39,7 +39,7 @@ For the Cloudflare runtime, create an uncommitted `.dev.vars` file containing `D
 - `DATABASE_URL` must be configured as a Cloudflare secret, never as a plaintext Wrangler variable.
 - Connect the GitHub repository in Workers Builds to deploy `main` automatically.
 - Direct country and investor URLs use the static asset single-page application fallback.
-- The private secondary-review application remains isolated on its separate Railway service during this migration and is excluded from the public Worker assets.
+- The private secondary-review application remains isolated in the protected Vercel project `useful-vc-review-ui-v2` and is excluded from the public Worker routes.
 - `npm run deploy:cloudflare:dry-run` validates and bundles the exact Worker payload without publishing it.
 
 ## Railway
@@ -51,9 +51,15 @@ The committed `railway.toml` defines the start command, database-aware health ch
 
 Railway supplies `PORT` automatically.
 
+## Private review deployment
+
+The canonical private review application is built from this same Git repository by Vercel project `useful-vc-review-ui-v2`. Its serverless entrypoints, routing, security headers, health check and source-verification workflow are versioned here; only encrypted credentials and Vercel Deployment Protection remain outside Git.
+
+See `docs/review-deployment.md` for the source contract, one-time secret setup and release verification. Phase 2 remains frozen until the Git-built writer passes a controlled throwaway adjudication against Neon.
+
 ## Data safety
 
-The deployed application executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data.
+The public directory runtime executes only `SELECT` statements against the public company view and investor relationship tables. It does not migrate, seed, update, or delete Neon data. The separate protected review runtime has an intentional adjudication write path governed by the classified database gate described below.
 
 ## Classified write gate
 
