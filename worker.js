@@ -8,6 +8,12 @@ function withSecurityHeaders(response) {
   return secured;
 }
 
+function staticRequest(request, pathname) {
+  const url = new URL(request.url);
+  url.pathname = pathname;
+  return new Request(url, request);
+}
+
 export default {
   async fetch(request, env) {
     try {
@@ -17,6 +23,12 @@ export default {
       }
 
       if (request.method === 'GET' || request.method === 'HEAD') {
+        if (pathname === '/rules' || pathname === '/rules/') {
+          return withSecurityHeaders(await env.ASSETS.fetch(staticRequest(request, '/rules.html')));
+        }
+        if (pathname === '/engine-methodology') {
+          return withSecurityHeaders(await env.ASSETS.fetch(staticRequest(request, '/engine-methodology.txt')));
+        }
         return withSecurityHeaders(await env.ASSETS.fetch(request));
       }
 
@@ -27,4 +39,3 @@ export default {
     }
   },
 };
-
