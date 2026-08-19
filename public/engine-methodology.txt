@@ -1,0 +1,117 @@
+useful.vc — engine methodology
+Replaces every earlier selectivity formulation. Same text into the classifier
+prompt and the coverage automation prompt, identically.
+This document contains no examples, no sector lists and no named cases, and none
+may be added to it. Every rule below generates its own instances. A rule that
+arrives with a list gets applied to the list and stops being a rule: the engine
+starts matching against members instead of testing against the criterion, and
+anything outside the list escapes judgement. Where a case seems to need an example
+in order to be decided, the rule is badly written. Say so. Do not invent the
+example.
+The public rules page is the reference text. Where this document and that page
+differ, the page wins and this document is corrected.
+Nothing here is negotiable case by case. See §8.
+1. The question
+Does the product do the thing, or does it help someone else maybe do it?
+2. The four exclusion rules
+Any one fires and the company is Excluded. No averaging, no compensation between
+rules, no strength elsewhere.
+R1 — The product does the work itself. If the situation only improves after a
+third party decides, develops, finances or deploys something further, the company
+has sold a possibility. Excluded.
+R2 — Whoever pays is not the one helped. If the customer is also the
+beneficiary, and what they gain is time or money, the company is improving how a
+business runs. Both conditions required. Excluded.
+R3 — The company acts on the problem, not on its consequences. Moving money
+after harm has occurred, lending against a shortage, or taking a fee on an exchange
+leaves the situation as it was. Sustaining someone against a condition that cannot
+be cured is not this: it acts on the condition.
+R4 — The company's interest runs with the interest of whoever carries the
+problem. Including parties who never pay, and non-human ones. Where the company
+does better as the affected party does worse, the stated intention changes nothing.
+Excluded.
+3. What counts as a problem
+Three kinds qualify. Nothing else does.
+What ends a life or shortens one.
+What permanently removes a capacity a living being has, or would have had.
+What is consumed faster than it is replaced, among the things living beings
+depend on.
+Two kinds are excluded without discussion. A condition that exists only inside a
+measurement or reporting framework, and anything that improves comfort,
+convenience or output.
+Ordering among qualifying problems
+Severity × number × irreversibility.
+A precedence order for close calls, not a quantity to compute. Severity outweighs
+frequency. What cannot be undone outweighs what can, at equal size — and this holds
+even where the reversible harm is the one currently receiving attention.
+Dependence on a rule
+If the benefit disappears when a regulation or a regulation-made market
+changes, and nothing physical is different afterwards, it was not a physical
+benefit.
+Physical work that happens to be encouraged by a rule is unaffected. The test is
+whether anything remains standing when the rule is withdrawn.
+4. Main or Pending
+Main — someone outside the company has measured the outcome.
+Pending — the four rules hold and no independent measurement exists yet. State
+which measurement is missing.
+Readiness decides this and only this. Absence of proof is never an exclusion, never
+a structural failure, and never enters a criterion. Enforced at write time, not by
+instruction.
+5. The single suspension
+Where the problem ends lives, R1 is suspended. An upstream company may enter at
+Pending when the harm it targets is fatal and the work aimed at the remedy is the
+step that has been abandoned.
+Nothing else is ever suspended. R2, R3 and R4 hold in all circumstances, including
+here.
+6. Two kinds of exclusion — always state which
+R1 says "not yet." Reversed by a result, never by an argument. The threshold:
+something originating from the company enters a verification process the company
+does not control. A company excluded under R1 is owed that threshold in writing.
+R2, R3 and R4 say "not like this." No evidence reverses them. Only a change in
+how the company earns does, and that is a different company. A company excluded
+under these is owed the truth about its model rather than a milestone it can never
+reach.
+7. What remains when payment stops — a modifier, never a fifth rule
+What is still there when the invoice stops?
+Four positions, strongest first: something built that exists without the company;
+something physical the company built and operates; something that works while the
+licence is paid; someone's time.
+The contract form is irrelevant. What remains is what counts, and the question is
+answered by what happens on the ground, not by how the company is billed.
+Within the third position, one discriminator: was something invented that nobody
+knew how to do, or were known parts assembled well. Evidence for the first is
+external and verifiable.
+This never excludes. Used as a rule it would remove work delivered by people, which
+can pass all four rules. It does two things: it settles ties between otherwise
+equivalent files, and it raises the bar for Main, since work delivered by people
+must additionally show the benefit persists once the engagement ends.
+8. No exceptions
+The rules are written. Borderline cases are settled with the rules as they stand.
+Disagreement about a case does not reopen the doctrine. Do not add carve-outs, do
+not create new statuses, do not introduce a category as a reason.
+Prohibited as a stated reason: anything that names a sector, a business
+category, a customer type or a stage of maturity as the ground of the verdict. Each
+substitutes a judgement about a class for a judgement about a company.
+Prohibited: any verdict derived from who the customer is. The identity of the
+buyer confers nothing and condemns nothing.
+Prohibited: any fact about the company's own situation entering a verdict about
+its product. Solvency, ownership, activity and publication status are held apart
+and cannot reach a criterion.
+9. Every verdict records
+Which rule fired, and whether it is "not yet" or "not like this". For R1, the
+threshold that would reverse it. For the others, what in the model produces the
+failure. What we consider the equivalent alternative, and the dimension on which we
+see no advantage. Who bears the deficit, and whether they can escape it. For
+Pending, what a third party would have to measure.
+A verdict naming no rule is not a verdict. A company kept without a written reason
+is the same defect as a company excluded without one, and harder to notice.
+Field names belong to the schema, not to this document.
+10. Re-judgement
+Every company is judged by this text, including every company already decided. A
+decision taken under an earlier formulation carries no precedent and grants no
+protection.
+Order of work: the cases known to be inconsistent, then everything published, then
+the remainder. Where two companies with the same model hold opposite verdicts, the
+rules decide both, and the older decision is the one that moves.
+Expected outcomes are not written here. A projected count becomes a target, and a
+target is met.
