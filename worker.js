@@ -1,4 +1,5 @@
 import { handleApiRequest, jsonResponse, securityHeaders } from './directory-api.js';
+import { handleV2ApiRequest } from './directory-v2-api.js';
 
 function withSecurityHeaders(response) {
   const secured = new Response(response.body, response);
@@ -12,6 +13,11 @@ export default {
   async fetch(request, env) {
     try {
       const pathname = new URL(request.url).pathname;
+
+      if (pathname === '/api/v2' || pathname.startsWith('/api/v2/')) {
+        return await handleV2ApiRequest(request, env.DATABASE_URL);
+      }
+
       if (pathname === '/healthz' || pathname.startsWith('/api/')) {
         return await handleApiRequest(request, env.DATABASE_URL);
       }
@@ -27,4 +33,3 @@ export default {
     }
   },
 };
-
