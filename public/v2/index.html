@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="useful.vc V2 — a transparent, evidence-based directory of technology companies doing work that matters.">
+  <title>useful.vc V2 — Research preview</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/v2/styles.css">
+</head>
+<body>
+  <div class="preview-banner">V2 research preview — not the current production list.</div>
+  <header class="site-header">
+    <a class="brand" href="/v2/" aria-label="useful.vc V2 home">
+      <img src="/mark.svg" alt="" width="28" height="28">
+      <span>useful.vc</span><strong>V2</strong>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="/v2/">Directory</a>
+      <a href="/v2/manifesto.html">Manifesto</a>
+      <a href="/v2/methodology.html">Methodology</a>
+      <a href="/">V1 archive</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Technology worth working on</p>
+      <h1>Find companies doing work that matters.</h1>
+      <p class="hero-copy">A public, evidence-based directory of products that materially improve life, health, essential capacity or the ability of living systems to persist.</p>
+      <div class="progress-grid" id="progress" aria-live="polite">
+        <div><strong>—</strong><span>companies in research</span></div>
+        <div><strong>—</strong><span>profiles completed</span></div>
+        <div><strong>—</strong><span>product verdicts</span></div>
+        <div><strong>V2</strong><span>methodology</span></div>
+      </div>
+    </section>
+
+    <section class="collection-switch" aria-label="Principal collections">
+      <button type="button" class="collection active" data-collection="">
+        <span>All companies</span><small>Every research state</small>
+      </button>
+      <button type="button" class="collection" data-collection="Technology">
+        <span>Technology</span><small>AI, robotics, non-invasive health, industry, energy, materials and nature</small>
+      </button>
+      <button type="button" class="collection" data-collection="Biotech & invasive medicine">
+        <span>Biotech & invasive medicine</span><small>Drugs, biologics, implants, invasive devices and surgical systems</small>
+      </button>
+    </section>
+
+    <section class="directory-shell">
+      <aside class="filters" aria-label="Directory filters">
+        <form id="filters-form">
+          <label class="search-label" for="q">Search everything</label>
+          <input id="q" name="q" type="search" autocomplete="off" placeholder="Company, product, customer, investor…">
+
+          <div class="filter-grid">
+            <label>Verdict
+              <select name="state" id="state">
+                <option value="">All</option>
+                <option value="Main">Main</option>
+                <option value="Pending">Pending</option>
+                <option value="Excluded">Excluded</option>
+                <option value="No verdict">No verdict</option>
+              </select>
+            </label>
+            <label>Country
+              <select name="country" id="country"><option value="">All</option></select>
+            </label>
+            <label>Operating status
+              <select name="operating" id="operating"><option value="">All</option></select>
+            </label>
+            <label>Ownership
+              <select name="ownership" id="ownership"><option value="">All</option></select>
+            </label>
+            <label>Company size
+              <select name="size" id="size"><option value="">All</option></select>
+            </label>
+            <label>Investor
+              <input name="investor" id="investor" type="search" placeholder="Investor name">
+            </label>
+            <label>Customer
+              <input name="customer" id="customer" type="search" placeholder="Who buys it">
+            </label>
+          </div>
+
+          <div class="filter-actions">
+            <button class="primary" type="submit">Apply filters</button>
+            <button class="secondary" id="reset" type="button">Reset</button>
+          </div>
+        </form>
+      </aside>
+
+      <section class="results" aria-live="polite">
+        <div class="results-head">
+          <div>
+            <p class="eyebrow">Directory</p>
+            <h2 id="results-title">All companies</h2>
+          </div>
+          <span id="result-count">Loading…</span>
+        </div>
+        <div id="company-list" class="company-list"></div>
+        <div class="pagination">
+          <button id="previous" type="button" class="secondary">Previous</button>
+          <span id="page-label">Page 1</span>
+          <button id="next" type="button" class="secondary">Next</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="company-dialog">
+    <button class="dialog-close" type="button" aria-label="Close company profile">×</button>
+    <div id="company-detail"></div>
+  </dialog>
+
+  <footer>
+    <p>Every public judgement names the product, the rules, the evidence and the person who signed it.</p>
+    <p id="methodology-hash">Methodology hash loading…</p>
+  </footer>
+
+  <script type="module" src="/v2/app.js"></script>
+</body>
+</html>
