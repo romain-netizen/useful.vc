@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "sha256": "1f317d5ff9801a9de935153adca45032dc7e4790e7d9f9b8c354963458a47207",
+  "parts": [
+    "public/v2/methodology-parts/01-introduction-through-value.md",
+    "public/v2/methodology-parts/02-structural-rules.md",
+    "public/v2/methodology-parts/03-evidence-and-verdicts.md",
+    "public/v2/methodology-parts/04-attributes-research-and-record.md",
+    "public/v2/methodology-parts/05-invariants-validation-and-challenges.md"
+  ],
+  "consumers": [
+    "classifier",
+    "coverage_automation",
+    "public_rules_page"
+  ]
+}
