@@ -37,13 +37,31 @@ function normalizeCollection(value) {
   return '';
 }
 
-function companyState(row) {
-  return row.v2_state || 'No verdict';
+function normalizeAuthority(value) {
+  const authority = clean(value).toLowerCase();
+  if (authority === 'signed') return 'signed';
+  if (authority === 'shadow' || authority === 'unsigned' || authority === 'unsigned_shadow') return 'unsigned_shadow';
+  if (authority === 'split') return 'product_split_required';
+  if (authority === 'none' || authority === 'no-verdict') return 'no_verdict';
+  if (authority === 'unresearched') return 'unresearched';
+  return '';
+}
+
+function presentation(row) {
+  return {
+    state: row.preview_state || 'No verdict',
+    signedState: row.v2_state || null,
+    provisionalState: row.shadow_state || null,
+    stateAuthority: row.preview_state_authority || 'unresearched',
+    stateIsSigned: row.preview_state_authority === 'signed',
+    collection: row.provisional_collection || null,
+    collectionIsProvisional: Boolean(row.collection_is_provisional),
+  };
 }
 
 async function progressResponse(request, databaseUrl) {
   const sql = database(databaseUrl);
-  const [progress] = await sql`SELECT * FROM publication_v2.research_progress`;
+  const [progress] = await sql`SELECT * FROM publication_v2.preview_progress`;
   const [engine] = await sql`
     SELECT
       count(*)::integer AS product_units,
@@ -60,11 +78,14 @@ async function progressResponse(request, databaseUrl) {
     WHERE active = true
     LIMIT 1
   `;
+  const [references] = await sql`SELECT * FROM publication_v2.shadow_reference_summary`;
   return jsonResponse(request, 200, {
     preview: true,
     productionChanged: false,
+    warning: 'Unsigned shadow states are research references, not published verdicts.',
     progress,
     engine,
+    references,
     methodology,
     generatedAt: new Date().toISOString(),
   });
@@ -76,6 +97,7 @@ async function companiesResponse(request, databaseUrl, url) {
   const qLike = `%${q}%`;
   const state = normalizeState(url.searchParams.get('state'));
   const collection = normalizeCollection(url.searchParams.get('collection'));
+  const authority = normalizeAuthority(url.searchParams.get('authority'));
   const country = clean(url.searchParams.get('country'));
   const countryLike = `%${country}%`;
   const investor = clean(url.searchParams.get('investor'));
@@ -85,8 +107,10 @@ async function companiesResponse(request, databaseUrl, url) {
   const operating = clean(url.searchParams.get('operating'));
   const ownership = clean(url.searchParams.get('ownership'));
   const employeeBand = clean(url.searchParams.get('size'));
-  const foundedFrom = boundedInteger(url.searchParams.get('founded_from'), 0, 0, 3000);
-  const foundedTo = boundedInteger(url.searchParams.get('founded_to'), 3000, 0, 3000);
+  const foundedFromRaw = clean(url.searchParams.get('founded_from'));
+  const foundedToRaw = clean(url.searchParams.get('founded_to'));
+  const foundedFrom = boundedInteger(foundedFromRaw, 0, 0, 3000);
+  const foundedTo = boundedInteger(foundedToRaw, 3000, 0, 3000);
   const page = boundedInteger(url.searchParams.get('page'), 1, 1, 100000);
   const limit = boundedInteger(url.searchParams.get('limit'), DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE);
   const offset = (page - 1) * limit;
@@ -99,7 +123,7 @@ async function companiesResponse(request, databaseUrl, url) {
         WHEN ${q} = '' THEN 0
         ELSE greatest(similarity(c.name, ${q}), similarity(coalesce(c.search_text, ''), ${q}))
       END AS search_rank
-    FROM publication_v2.company_directory c
+    FROM publication_v2.company_directory_preview c
     WHERE
       (
         ${q} = ''
@@ -108,8 +132,8 @@ async function companiesResponse(request, databaseUrl, url) {
       )
       AND (
         ${state} = ''
-        OR (${state} = 'No verdict' AND c.v2_state IS NULL)
-        OR c.v2_state = ${state}
+        OR (${state} = 'No verdict' AND c.preview_state IS NULL)
+        OR c.preview_state = ${state}
       )
       AND (
         ${collection} = ''
@@ -118,7 +142,9 @@ async function companiesResponse(request, databaseUrl, url) {
           FROM jsonb_array_elements(c.product_units) AS unit
           WHERE unit->>'collection' = ${collection}
         )
+        OR (c.v2_state IS NULL AND c.provisional_collection = ${collection})
       )
+      AND (${authority} = '' OR c.preview_state_authority = ${authority})
       AND (${country} = '' OR coalesce(c.country, '') ILIKE ${countryLike})
       AND (
         ${investor} = ''
@@ -132,12 +158,13 @@ async function companiesResponse(request, databaseUrl, url) {
       AND (${operating} = '' OR c.operating_status = ${operating})
       AND (${ownership} = '' OR c.ownership_status = ${ownership})
       AND (${employeeBand} = '' OR c.employee_band = ${employeeBand})
-      AND (c.founding_year IS NULL OR c.founding_year >= ${foundedFrom})
-      AND (c.founding_year IS NULL OR c.founding_year <= ${foundedTo})
+      AND (${foundedFromRaw} = '' OR c.founding_year >= ${foundedFrom})
+      AND (${foundedToRaw} = '' OR c.founding_year <= ${foundedTo})
     ORDER BY
       CASE WHEN ${q} = '' THEN 0 ELSE 1 END DESC,
       search_rank DESC,
-      CASE c.v2_state WHEN 'Main' THEN 0 WHEN 'Pending' THEN 1 WHEN 'Excluded' THEN 2 ELSE 3 END,
+      CASE c.preview_state_authority WHEN 'signed' THEN 0 WHEN 'unsigned_shadow' THEN 1 ELSE 2 END,
+      CASE c.preview_state WHEN 'Main' THEN 0 WHEN 'Pending' THEN 1 WHEN 'Excluded' THEN 2 ELSE 3 END,
       c.name ASC
     LIMIT ${limit}
     OFFSET ${offset}
@@ -146,10 +173,12 @@ async function companiesResponse(request, databaseUrl, url) {
   const total = rows.length ? Number(rows[0].filtered_count) : 0;
   const companies = rows.map(({ filtered_count: _filteredCount, search_rank: _searchRank, ...row }) => ({
     ...row,
-    state: companyState(row),
+    ...presentation(row),
   }));
 
   return jsonResponse(request, 200, {
+    preview: true,
+    warning: 'Rows without a signedState show unsigned shadow research or no verdict.',
     companies,
     pagination: {
       page,
@@ -157,8 +186,11 @@ async function companiesResponse(request, databaseUrl, url) {
       total,
       pages: Math.max(1, Math.ceil(total / limit)),
     },
-    filters: { q, state, collection, country, investor, customer, operating, ownership, employeeBand },
-    source: 'Neon isolated V2 branch: publication_v2.company_directory',
+    filters: {
+      q, state, collection, authority, country, investor, customer,
+      operating, ownership, employeeBand, foundedFrom: foundedFromRaw, foundedTo: foundedToRaw,
+    },
+    source: 'Neon isolated V2 branch: publication_v2.company_directory_preview',
     generatedAt: new Date().toISOString(),
   });
 }
@@ -167,7 +199,7 @@ async function companyResponse(request, databaseUrl, companyId) {
   const sql = database(databaseUrl);
   const [company] = await sql`
     SELECT *
-    FROM publication_v2.company_directory
+    FROM publication_v2.company_directory_preview
     WHERE id = ${companyId}
     LIMIT 1
   `;
@@ -235,7 +267,15 @@ async function companyResponse(request, databaseUrl, companyId) {
     FROM research_v2.sources
     WHERE company_id = ${companyId}
     ORDER BY material_conflict DESC, published_on DESC NULLS LAST, retrieved_at DESC
-    LIMIT 200
+    LIMIT 250
+  `;
+
+  const claims = await sql`
+    SELECT id, source_id, unit_id, claim_type, claim_text, support_status, rule_code
+    FROM research_v2.claims
+    WHERE company_id = ${companyId}
+    ORDER BY id
+    LIMIT 500
   `;
 
   const aliases = await sql`
@@ -243,6 +283,26 @@ async function companyResponse(request, databaseUrl, companyId) {
     FROM directory_v2.company_aliases
     WHERE company_id = ${companyId}
     ORDER BY alias
+  `;
+
+  const candidates = await sql`
+    SELECT id, candidate_name, candidate_summary, intended_use, claimed_outcome,
+           economic_model, source_kind, source_reference, needs_split, status,
+           confidence, notes, updated_at
+    FROM research_v2.unit_candidates
+    WHERE company_id = ${companyId}
+      AND status NOT IN ('rejected','superseded')
+    ORDER BY id
+  `;
+
+  const shadow = await sql`
+    SELECT provisional_state, admission_route, causal_position,
+           r1, r2, r3, r4, r5, readiness, confidence,
+           rationale, next_action, source_workbook, imported_at
+    FROM research_v2.shadow_assessments
+    WHERE company_id = ${companyId}
+    ORDER BY imported_at DESC, id DESC
+    LIMIT 10
   `;
 
   const tasks = await sql`
@@ -255,11 +315,18 @@ async function companyResponse(request, databaseUrl, companyId) {
   `;
 
   return jsonResponse(request, 200, {
-    company: { ...company, state: companyState(company) },
+    preview: true,
+    company: { ...company, ...presentation(company) },
     aliases,
     units,
+    unitCandidates: candidates,
+    shadowReferences: shadow,
     sources,
+    claims,
     openResearch: tasks,
+    warning: units.length
+      ? 'Only signed product-unit verdicts are authoritative.'
+      : 'No signed product-unit verdict exists. Any displayed state is an unsigned research reference.',
     generatedAt: new Date().toISOString(),
   });
 }
@@ -274,51 +341,71 @@ async function investorsResponse(request, databaseUrl, url) {
       i.id,
       i.name,
       count(DISTINCT ci.company_id)::integer AS company_count,
-      count(DISTINCT ci.company_id) FILTER (WHERE d.v2_state = 'Main')::integer AS main_count,
-      count(DISTINCT ci.company_id) FILTER (WHERE d.v2_state = 'Pending')::integer AS pending_count
+      count(DISTINCT ci.company_id) FILTER (WHERE d.preview_state = 'Main')::integer AS main_count,
+      count(DISTINCT ci.company_id) FILTER (WHERE d.preview_state = 'Pending')::integer AS pending_count,
+      count(DISTINCT ci.company_id) FILTER (WHERE d.preview_state_authority = 'signed')::integer AS signed_company_count
     FROM public.investors i
     JOIN public.company_investors ci ON ci.investor_id = i.id
-    LEFT JOIN publication_v2.company_directory d ON d.id = ci.company_id
+    LEFT JOIN publication_v2.company_directory_preview d ON d.id = ci.company_id
     WHERE ${q} = '' OR i.name ILIKE ${qLike} OR similarity(i.name, ${q}) >= 0.20
     GROUP BY i.id, i.name
     ORDER BY company_count DESC, i.name
     LIMIT ${limit}
   `;
-  return jsonResponse(request, 200, { investors, generatedAt: new Date().toISOString() });
+  return jsonResponse(request, 200, {
+    preview: true,
+    warning: 'Main and Pending counts may include unsigned shadow research until signed V2 verdicts exist.',
+    investors,
+    generatedAt: new Date().toISOString(),
+  });
 }
 
 async function facetsResponse(request, databaseUrl) {
   const sql = database(databaseUrl);
   const countries = await sql`
     SELECT country AS value, count(*)::integer AS count
-    FROM publication_v2.company_directory
+    FROM publication_v2.company_directory_preview
     WHERE country IS NOT NULL AND btrim(country) <> ''
     GROUP BY country
     ORDER BY count DESC, country
   `;
   const operatingStatuses = await sql`
     SELECT operating_status AS value, count(*)::integer AS count
-    FROM publication_v2.company_directory
+    FROM publication_v2.company_directory_preview
     GROUP BY operating_status
     ORDER BY count DESC, operating_status
   `;
   const ownershipStatuses = await sql`
     SELECT ownership_status AS value, count(*)::integer AS count
-    FROM publication_v2.company_directory
+    FROM publication_v2.company_directory_preview
     GROUP BY ownership_status
     ORDER BY count DESC, ownership_status
   `;
   const sizeBands = await sql`
     SELECT employee_band AS value, count(*)::integer AS count
-    FROM publication_v2.company_directory
+    FROM publication_v2.company_directory_preview
     GROUP BY employee_band
     ORDER BY CASE employee_band
       WHEN '1–10' THEN 1 WHEN '11–50' THEN 2 WHEN '51–200' THEN 3
       WHEN '201–500' THEN 4 WHEN '501–1,000' THEN 5 WHEN '1,001+' THEN 6 ELSE 7 END
   `;
+  const authorities = await sql`
+    SELECT preview_state_authority AS value, count(*)::integer AS count
+    FROM publication_v2.company_directory_preview
+    GROUP BY preview_state_authority
+    ORDER BY count DESC, preview_state_authority
+  `;
+  const collections = await sql`
+    SELECT provisional_collection AS value, count(*)::integer AS count
+    FROM publication_v2.company_directory_preview
+    GROUP BY provisional_collection
+    ORDER BY provisional_collection
+  `;
   return jsonResponse(request, 200, {
+    preview: true,
     states: ['Main', 'Pending', 'Excluded', 'No verdict'],
-    collections: ['Technology', 'Biotech & invasive medicine'],
+    collections,
+    authorities,
     countries,
     operatingStatuses,
     ownershipStatuses,
@@ -337,6 +424,12 @@ async function methodologyResponse(request, databaseUrl) {
     LIMIT 1
   `;
   return jsonResponse(request, 200, { methodology, generatedAt: new Date().toISOString() });
+}
+
+async function completenessResponse(request, databaseUrl) {
+  const sql = database(databaseUrl);
+  const [summary] = await sql`SELECT * FROM publication_v2.data_completeness_summary`;
+  return jsonResponse(request, 200, { preview: true, summary, generatedAt: new Date().toISOString() });
 }
 
 export async function handleV2ApiRequest(request, databaseUrl) {
@@ -365,6 +458,9 @@ export async function handleV2ApiRequest(request, databaseUrl) {
     }
     if (pathname === '/api/v2/methodology') {
       return await methodologyResponse(request, databaseUrl);
+    }
+    if (pathname === '/api/v2/completeness') {
+      return await completenessResponse(request, databaseUrl);
     }
     return jsonResponse(request, 404, { error: 'v2_endpoint_not_found' });
   } catch (error) {
