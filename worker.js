@@ -29,7 +29,7 @@ async function canonicalMethodologyResponse(request, env) {
     }
     parts.push(await response.text());
   }
-  const body = parts.join('');
+  const body = parts.join('\n');
   const response = new Response(request.method === 'HEAD' ? null : body, {
     status: 200,
     headers: {
