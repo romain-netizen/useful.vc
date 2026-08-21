@@ -35,23 +35,42 @@ function stateClass(value) {
   return String(value || 'No verdict').replaceAll(' ', '-');
 }
 
-function collectionNames(company) {
-  return [...new Set((company.product_units || []).map((unit) => unit.collection).filter(Boolean))];
+function authorityLabel(authority) {
+  return {
+    signed: 'Signed verdict',
+    unsigned_shadow: 'Unsigned research',
+    product_split_required: 'Product split required',
+    no_verdict: 'No verdict',
+    unresearched: 'Not yet assessed',
+  }[authority] || 'Not yet assessed';
+}
+
+function collectionItems(company) {
+  const signed = [...new Set((company.product_units || []).map((unit) => unit.collection).filter(Boolean))];
+  if (signed.length) return signed.map((name) => ({ name, provisional: false }));
+  if (company.provisional_collection) {
+    return [{ name: company.provisional_collection, provisional: true }];
+  }
+  return [];
 }
 
 function companyCard(company) {
-  const collections = collectionNames(company);
+  const collections = collectionItems(company);
   const status = [company.operating_status, company.ownership_status].filter(Boolean).join(' · ');
   const founded = company.founding_year || 'Founding date pending';
   const size = company.employee_band && company.employee_band !== 'Unknown'
     ? `${company.employee_band} people`
     : 'Size pending';
+  const authority = authorityLabel(company.stateAuthority);
+  const authorityClass = company.stateIsSigned ? 'authority-signed' : 'authority-unsigned';
+  const completeness = Number(company.completeness_percent || 0);
   return `
     <button class="company-card" type="button" data-company-id="${company.id}">
       <div>
         <p class="company-name">${escapeHtml(company.name)}</p>
         <p class="company-meta">${escapeHtml(company.country || 'Country pending')} · ${escapeHtml(founded)} · ${escapeHtml(size)}</p>
         <p class="company-meta">${escapeHtml(status)}</p>
+        <p class="profile-completeness">Profile ${escapeHtml(completeness.toFixed(0))}% complete · ${Number(company.source_count || 0).toLocaleString()} sources</p>
       </div>
       <div>
         <p class="company-summary">${escapeHtml(company.plain_summary || 'Plain-language profile is being researched.')}</p>
@@ -60,7 +79,8 @@ function companyCard(company) {
       </div>
       <div class="company-side">
         <span class="badge ${stateClass(company.state)}">${escapeHtml(company.state)}</span>
-        ${collections.map((name) => `<span class="badge collection-badge">${escapeHtml(name)}</span>`).join('')}
+        <span class="badge ${authorityClass}">${escapeHtml(authority)}</span>
+        ${collections.map(({ name, provisional }) => `<span class="badge collection-badge ${provisional ? 'routing-provisional' : ''}">${escapeHtml(name)}${provisional ? ' · provisional' : ''}</span>`).join('')}
         ${company.legacy_public_state ? `<span class="badge collection-badge">V1: ${escapeHtml(company.legacy_public_state)}</span>` : ''}
       </div>
     </button>`;
@@ -134,10 +154,11 @@ async function loadProgress() {
     const payload = await response.json();
     const progress = payload.progress || {};
     const engine = payload.engine || {};
+    const signed = Number(engine.listed_units || 0) + Number(engine.pending_units || 0) + Number(engine.excluded_units || 0);
     document.querySelector('#progress').innerHTML = `
       <div><strong>${Number(progress.total_companies || 0).toLocaleString()}</strong><span>companies in research</span></div>
-      <div><strong>${Number(progress.complete_companies || 0).toLocaleString()}</strong><span>profiles completed</span></div>
-      <div><strong>${Number(engine.product_units || 0).toLocaleString()}</strong><span>product units created</span></div>
+      <div><strong>${Number(progress.source_records || 0).toLocaleString()}</strong><span>normalized evidence sources</span></div>
+      <div><strong>${signed.toLocaleString()}</strong><span>signed V2 verdicts</span></div>
       <div><strong>${escapeHtml(payload.methodology?.version || 'V2')}</strong><span>methodology version</span></div>`;
     document.querySelector('#methodology-hash').textContent = `Methodology SHA-256: ${payload.methodology?.content_hash || 'unavailable'}`;
   } catch {
@@ -160,7 +181,7 @@ function restoreFormFromUrl() {
 }
 
 function profileValue(value, fallback = 'Not yet researched') {
-  return escapeHtml(value || fallback);
+  return escapeHtml(value ?? fallback);
 }
 
 function ruleMarkup(rule) {
@@ -187,6 +208,36 @@ function unitMarkup(unit) {
   </article>`;
 }
 
+function shadowMarkup(reference) {
+  if (!reference) return '';
+  const rules = ['r1', 'r2', 'r3', 'r4', 'r5'];
+  return `<section class="shadow-panel">
+    <p class="eyebrow">Unsigned research reference</p>
+    <h3>${escapeHtml(reference.provisional_state || 'No verdict')}</h3>
+    <p>This is the imported shadow assessment, not a signed product-level verdict.</p>
+    <p><strong>Admission route:</strong> ${escapeHtml(reference.admission_route || 'Unresolved')} · <strong>Causal position:</strong> ${escapeHtml(reference.causal_position || 'Unresolved')}</p>
+    <div class="shadow-rules">${rules.map((rule) => `<div class="shadow-rule ${stateClass(reference[rule])}">${rule.toUpperCase()} · ${escapeHtml(reference[rule] || 'Unresolved')}</div>`).join('')}</div>
+    ${reference.next_action ? `<p><strong>Next action:</strong> ${escapeHtml(reference.next_action)}</p>` : ''}
+  </section>`;
+}
+
+function candidateMarkup(candidate) {
+  return `<div class="candidate">
+    <strong>${escapeHtml(candidate.candidate_name)}</strong>
+    <span>${escapeHtml(candidate.candidate_summary || 'Product-unit definition pending.')}</span>
+    <p class="profile-completeness">${escapeHtml(candidate.status)} · ${candidate.needs_split ? 'product split required' : 'single unit proposed'}</p>
+  </div>`;
+}
+
+function sourceMarkup(source) {
+  const label = escapeHtml(source.title || source.publisher || source.url || 'Evidence source');
+  const isPublicUrl = /^https?:\/\//i.test(source.url || '');
+  const linked = isPublicUrl
+    ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+    : `<span>${label}</span>`;
+  return `<li>${linked}${source.material_conflict ? '<span class="source-label">contradictory</span>' : ''}${source.company_controlled ? '<span class="source-label">company-controlled</span>' : ''}</li>`;
+}
+
 async function showCompany(companyId) {
   detail.innerHTML = '<div class="company-detail"><p>Loading company profile…</p></div>';
   dialog.showModal();
@@ -195,22 +246,40 @@ async function showCompany(companyId) {
     if (!response.ok) throw new Error(`Company request failed (${response.status})`);
     const payload = await response.json();
     const company = payload.company;
+    const reference = payload.shadowReferences?.[0];
+    const aliases = (payload.aliases || []).map((item) => item.alias).filter(Boolean).join(', ');
+    const collection = company.collection || company.provisional_collection || 'Routing pending';
+    const collectionSuffix = company.collectionIsProvisional ? ' — provisional' : '';
+    const authority = authorityLabel(company.stateAuthority);
+    const candidates = payload.unitCandidates || [];
+    const sources = payload.sources || [];
     detail.innerHTML = `<div class="company-detail">
-      <p class="eyebrow">${escapeHtml(company.state)} · ${escapeHtml(company.country || 'Country pending')}</p>
+      <p class="eyebrow">${escapeHtml(company.state)} · ${escapeHtml(authority)} · ${escapeHtml(company.country || 'Country pending')}</p>
       <h2>${escapeHtml(company.name)}</h2>
       <p class="hero-copy">${escapeHtml(company.plain_summary || 'Plain-language profile is being researched.')}</p>
+      <div class="company-side" style="justify-content:flex-start;margin-top:1rem">
+        <span class="badge ${stateClass(company.state)}">${escapeHtml(company.state)}</span>
+        <span class="badge ${company.stateIsSigned ? 'authority-signed' : 'authority-unsigned'}">${escapeHtml(authority)}</span>
+        <span class="badge collection-badge ${company.collectionIsProvisional ? 'routing-provisional' : ''}">${escapeHtml(collection + collectionSuffix)}</span>
+      </div>
       <dl class="profile-grid">
         <div><dt>Founded</dt><dd>${profileValue(company.founding_year)}</dd></div>
         <div><dt>Approximate size</dt><dd>${profileValue(company.employee_band)}</dd></div>
+        <div><dt>Profile completeness</dt><dd>${profileValue(`${Number(company.completeness_percent || 0).toFixed(0)}%`)}</dd></div>
         <div><dt>Operating status</dt><dd>${profileValue(company.operating_status)}</dd></div>
         <div><dt>Ownership</dt><dd>${profileValue(company.ownership_status)}</dd></div>
+        <div><dt>Current owner</dt><dd>${profileValue(company.current_owner)}</dd></div>
         <div><dt>Customers</dt><dd>${profileValue(company.customer_summary)}</dd></div>
         <div><dt>Investors</dt><dd>${escapeHtml(shortList(company.investors, 8))}</dd></div>
+        <div><dt>Former names</dt><dd>${profileValue(aliases)}</dd></div>
       </dl>
+      ${!company.stateIsSigned ? shadowMarkup(reference) : ''}
       <h3>Product-level judgements</h3>
-      ${payload.units.length ? payload.units.map(unitMarkup).join('') : '<p>No product-use unit has been validated yet. The company remains in the research queue.</p>'}
+      ${payload.units.length ? payload.units.map(unitMarkup).join('') : '<p>No product-use unit has been signed. The company remains in the V2 research queue.</p>'}
+      ${!payload.units.length && candidates.length ? `<h3>Unit-discovery leads</h3><div class="candidate-list">${candidates.map(candidateMarkup).join('')}</div>` : ''}
       <h3>Public evidence</h3>
-      ${payload.sources.length ? `<ul class="source-list">${payload.sources.map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title || source.publisher || source.url)}</a>${source.material_conflict ? ' — contradictory evidence' : ''}</li>`).join('')}</ul>` : '<p>No V2 source has been published yet.</p>'}
+      <p>${Number(company.source_count || sources.length).toLocaleString()} normalized source records are attached to this company.</p>
+      ${sources.length ? `<ul class="source-list">${sources.slice(0, 30).map(sourceMarkup).join('')}</ul>${sources.length > 30 ? `<p>Showing 30 of ${sources.length} sources.</p>` : ''}` : '<p>No V2 source has been published yet.</p>'}
       ${payload.openResearch.length ? `<h3>Open research</h3><ul>${payload.openResearch.map((task) => `<li>${escapeHtml(task.question)}</li>`).join('')}</ul>` : ''}
     </div>`;
   } catch (error) {
