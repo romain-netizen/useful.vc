@@ -1,6 +1,6 @@
 {
   "name": "useful-vc",
-  "version": "1.0.0",
+  "version": "2.0.0-preview",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,10 +8,14 @@
   },
   "scripts": {
     "start": "node scripts/hcvc_probe.mjs && node server.js",
-    "check": "node --check directory-api.js && node --check server.js && node --check worker.js && node --check public/app.js",
+    "check": "node --check directory-api.js && node --check directory-v2-api.js && node --check server.js && node --check worker.js && node --check public/app.js && node --check public/v2/app.js",
+    "test:v2": "node --test tests/v2/*.test.js",
     "dev:cloudflare": "wrangler dev",
+    "dev:v2": "wrangler dev --config wrangler.v2.jsonc",
     "deploy:cloudflare": "wrangler deploy",
-    "deploy:cloudflare:dry-run": "wrangler deploy --dry-run --outdir dist"
+    "deploy:cloudflare:dry-run": "wrangler deploy --dry-run --outdir dist",
+    "deploy:v2:dry-run": "wrangler deploy --config wrangler.v2.jsonc --dry-run --outdir dist-v2",
+    "deploy:v2:preview": "wrangler deploy --config wrangler.v2.jsonc"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1"
