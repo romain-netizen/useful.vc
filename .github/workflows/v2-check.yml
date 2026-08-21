@@ -1,0 +1,47 @@
+name: V2 validation
+
+on:
+  push:
+    branches:
+      - v2/chatgpt-takeover-2026-08-21
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: V2 contract tests
+        run: npm run test:v2
+
+      - name: Cloudflare V2 dry run
+        run: npm run deploy:v2:dry-run
+
+      - name: Assert preview isolation
+        run: |
+          grep -q '"name": "useful-vc-v2-preview"' wrangler.v2.jsonc
+          grep -q '"PREVIEW_ONLY": "true"' wrangler.v2.jsonc
+          if grep -q 'routes' wrangler.v2.jsonc; then
+            echo "V2 preview configuration must not attach a route" >&2
+            exit 1
+          fi

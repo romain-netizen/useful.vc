@@ -1,0 +1,14 @@
+.prose-main { width: min(960px, 100%); margin: 0 auto; padding: clamp(3rem, 7vw, 7rem) clamp(1rem, 4vw, 3rem) 6rem; }
+.prose-main article { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: clamp(1.4rem, 5vw, 4.5rem); box-shadow: var(--shadow); }
+.prose-main h1 { font-size: clamp(2.8rem, 8vw, 6.4rem); margin-bottom: 1.5rem; }
+.prose-main h2 { margin: 2.7rem 0 .8rem; font-size: clamp(1.7rem, 4vw, 2.7rem); }
+.prose-main h3 { margin: 2rem 0 .65rem; font-size: 1.25rem; }
+.prose-main p, .prose-main li { font-size: clamp(1rem, 1.6vw, 1.16rem); line-height: 1.7; }
+.prose-main p { margin: .8rem 0; }
+.prose-main ul, .prose-main ol { padding-left: 1.4rem; }
+.prose-main blockquote { margin: 2rem 0; padding: 1.2rem 1.4rem; border-left: 4px solid var(--accent); background: var(--accent-soft); font-family: Georgia, serif; font-size: clamp(1.3rem, 3vw, 2rem); line-height: 1.35; }
+.prose-main .lead { color: var(--muted); font-size: clamp(1.15rem, 2.2vw, 1.5rem); line-height: 1.55; }
+.prose-main .rule-card { border-top: 1px solid var(--line); padding-top: 1rem; margin-top: 1.6rem; }
+.prose-main .hash { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; background: var(--paper); border-radius: 8px; padding: .7rem; }
+.prose-main .language-links { display: flex; gap: .7rem; flex-wrap: wrap; margin: 1rem 0 2rem; }
+.prose-main .language-links a { border: 1px solid var(--line); border-radius: 999px; padding: .4rem .75rem; text-decoration: none; font-weight: 750; font-size: .82rem; }
