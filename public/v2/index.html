@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/v2/styles.css">
 </head>
 <body>
-  <div class="preview-banner">V2 research preview — not the current production list.</div>
+  <div class="preview-banner">V2 research preview — isolated from production. Unsigned research is labelled throughout.</div>
   <header class="site-header">
     <a class="brand" href="/v2/" aria-label="useful.vc V2 home">
       <img src="/mark.svg" alt="" width="28" height="28">
@@ -30,9 +30,13 @@
       <p class="hero-copy">A public, evidence-based directory of products that materially improve life, health, essential capacity or the ability of living systems to persist.</p>
       <div class="progress-grid" id="progress" aria-live="polite">
         <div><strong>—</strong><span>companies in research</span></div>
-        <div><strong>—</strong><span>profiles completed</span></div>
-        <div><strong>—</strong><span>product verdicts</span></div>
+        <div><strong>—</strong><span>evidence sources</span></div>
+        <div><strong>—</strong><span>signed V2 verdicts</span></div>
         <div><strong>V2</strong><span>methodology</span></div>
+      </div>
+      <div class="research-note">
+        <strong>Two layers are shown.</strong>
+        <span>A signed verdict has passed product-level review and publication safeguards. An unsigned research state is an initial V2 assessment used to expose the work in progress; it is not an authoritative verdict.</span>
       </div>
     </section>
 
@@ -55,13 +59,23 @@
           <input id="q" name="q" type="search" autocomplete="off" placeholder="Company, product, customer, investor…">
 
           <div class="filter-grid">
-            <label>Verdict
+            <label>Verdict or research state
               <select name="state" id="state">
                 <option value="">All</option>
                 <option value="Main">Main</option>
                 <option value="Pending">Pending</option>
                 <option value="Excluded">Excluded</option>
                 <option value="No verdict">No verdict</option>
+              </select>
+            </label>
+            <label>Decision authority
+              <select name="authority" id="authority">
+                <option value="">All</option>
+                <option value="signed">Signed verdict</option>
+                <option value="unsigned_shadow">Unsigned research</option>
+                <option value="product_split_required">Product split required</option>
+                <option value="no_verdict">No verdict</option>
+                <option value="unresearched">Not yet assessed</option>
               </select>
             </label>
             <label>Country
@@ -115,7 +129,7 @@
   </dialog>
 
   <footer>
-    <p>Every public judgement names the product, the rules, the evidence and the person who signed it.</p>
+    <p>Every authoritative judgement names the product, rules, evidence and person who signed it.</p>
     <p id="methodology-hash">Methodology hash loading…</p>
   </footer>
 
