@@ -14,7 +14,7 @@ export function loadEngineV2CanonicalText() {
   const manifest = loadEngineV2Manifest();
   return manifest.parts
     .map((relativePath) => fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8'))
-    .join('');
+    .join('\n');
 }
 
 export function loadClassifierSystemPrompt() {
