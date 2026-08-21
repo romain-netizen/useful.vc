@@ -6,6 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": true,
+  "vars": {
+    "PREVIEW_ONLY": "true",
+    "V2_NEON_BRANCH_ID": "br-wild-firefly-avnroif1",
+    "V2_METHODOLOGY_VERSION": "2.0",
+    "V2_METHODOLOGY_HASH": "1f317d5ff9801a9de935153adca45032dc7e4790e7d9f9b8c354963458a47207"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
